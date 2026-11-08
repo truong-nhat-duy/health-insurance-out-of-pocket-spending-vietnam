@@ -1,0 +1,593 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De t
+> ai cuoi ky\00. FILE LOG-DO-DATABASE 01\bhyt_oop_2024_Final.log
+  log type:  text
+ opened on:  25 Feb 2026, 06:08:01
+
+. 
+. * Đặt thư mục làm việc (Hãy sửa lại đường dẫn này theo máy của bạn)
+. local dir `c(pwd)'
+
+. cd "`dir'"
+D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai cuoi ky\00
+> . FILE LOG-DO-DATABASE 01
+
+. 
+. ********************************************************************************
+. * THIẾT LẬP ĐƯỜNG DẪN XUẤT KẾT QUẢ CHO LATEX
+. ********************************************************************************
+. 
+. * 1. Đường dẫn xuất Bảng (Tables - file .tex)
+. global tablepath "D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\0
+> 2. De tai cuoi ky\01. Bai viet LAtex\tables"
+
+. cap mkdir "$tablepath"
+
+. 
+. * 2. Đường dẫn xuất Hình ảnh (Figures - file .png)
+. global figpath "D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02.
+>  De tai cuoi ky\01. Bai viet LAtex\figures"
+
+. cap mkdir "$figpath"
+
+. 
+. ********************************************************************************
+. * BƯỚC 1: LÀM SẠCH VÀ CHUẨN BỊ DỮ LIỆU TỪNG FILE
+. ********************************************************************************
+. 
+. display ">>> BƯỚC 1: XỬ LÝ DỮ LIỆU HỘ GIA ĐÌNH & PHÂN RÃ OOP <<<"
+>>> BƯỚC 1: XỬ LÝ DỮ LIỆU HỘ GIA ĐÌNH & PHÂN RÃ OOP <<<
+
+. * --- 1. FILE HỘ GIA ĐÌNH ---
+. use "Ho_ThongTinHo.dta", clear
+
+. rename *, lower
+  (all newnames==oldnames)
+
+. rename idho IDHO
+
+. 
+. * Biến Nông thôn (1=Nông thôn, 0=Thành thị)
+. gen RURAL = (ttnt == 2) 
+
+. 
+. * Thu nhập bình quân (Triệu đồng) và Log(Thu nhập)
+. gen INC_HH_MIL = tongthu / 1000 
+
+. gen INC_PC_MIL = INC_HH_MIL / tsnguoi
+
+. gen ln_INC = ln(INC_PC_MIL + 1)
+
+. 
+. * Tổng chi OOP hộ (đơn vị: triệu đồng) 
+. gen OOP_HH = m3ct / 1000
+
+. 
+. * PHÂN RÃ CHI PHÍ OOP (VHLSS có biến nội trú (m3ct2) / ngoại trú (m3ct1) ở cấp hộ)
+. capture gen OOP_INPATIENT = m3ct2 / 1000
+
+. capture gen OOP_OUTPATIENT = m3ct1 / 1000
+
+. 
+. keep IDHO tinh huyen xa diaban RURAL INC_PC_MIL ln_INC tsnguoi OOP_HH OOP_INPATIENT OOP_OUTPATIENT
+
+. save "b1_household.dta", replace
+file b1_household.dta saved
+
+. 
+. * --- 2. FILE NHÂN KHẨU & BHYT ---
+. use "Ho_ThanhVien.dta", clear
+
+. rename *, lower
+  (all newnames==oldnames)
+
+. rename idho IDHO
+
+. 
+. gen IS_HEAD = (m1a_c3 == 1)
+
+. gen AGE_VAL = m1a_c5 if IS_HEAD == 1
+(120,909 missing values generated)
+
+. gen SEX_VAL = m1a_c2 if IS_HEAD == 1
+(120,909 missing values generated)
+
+. 
+. bys IDHO: egen AGE_HEAD = max(AGE_VAL)
+
+. bys IDHO: egen SEX_HEAD = max(SEX_VAL)
+
+. bys IDHO: gen HH_SIZE = _N
+
+. 
+. gen HAS_BHYT = (m3a_c7 == 1)
+
+. bys IDHO: egen BHYT_RATE = mean(HAS_BHYT)
+
+. 
+. bys IDHO: keep if _n == 1
+(120,909 observations deleted)
+
+. keep IDHO AGE_HEAD SEX_HEAD HH_SIZE BHYT_RATE
+
+. save "b2_demog.dta", replace
+file b2_demog.dta saved
+
+. 
+. * --- 3. FILE CHI PHÍ Y TẾ VÀ HÀNH VI KHÁM BỆNH ---
+. use "Ho_Muc3A.dta", clear
+
+. rename *, lower
+
+. rename idho IDHO
+
+. 
+. gen tuyen = .
+(68,402 missing values generated)
+
+. replace tuyen = 1 if inlist(m3a_c3ma,1,2,3)       // Xã/Huyện
+(10,972 real changes made)
+
+. replace tuyen = 2 if inlist(m3a_c3ma,4,5,6)       // Tỉnh/TW
+(37,110 real changes made)
+
+. replace tuyen = 3 if inlist(m3a_c3ma,7,8)         // Tư nhân
+(6,249 real changes made)
+
+. replace tuyen = 4 if inlist(m3a_c3ma,9,10,11,12,13) // Tự điều trị
+(14,068 real changes made)
+
+. 
+. gen vuot_tuyen_ind = inlist(tuyen,2,3)
+
+. 
+. bys IDHO: egen so_ca_kham = count(idtv)
+
+. bys IDHO: egen so_ca_vuot = total(vuot_tuyen_ind)
+
+. bys IDHO: egen hh_vuot_tuyen = max(vuot_tuyen_ind)
+
+. gen tyle_vuot = so_ca_vuot / so_ca_kham
+
+. 
+. bys IDHO: keep if _n == 1
+(35,054 observations deleted)
+
+. keep IDHO hh_vuot_tuyen so_ca_kham so_ca_vuot tyle_vuot
+
+. save "b3_oop.dta", replace
+file b3_oop.dta saved
+
+. 
+. ********************************************************************************
+. * BƯỚC 2: GHÉP NỐI VÀ TẠO CÁC BIẾN KINH TẾ LƯỢNG (MERGE & FEATURE ENGINEERING)
+. ********************************************************************************
+. display ">>> BƯỚC 2: GHÉP NỐI DỮ LIỆU VÀ TẠO BIẾN <<<"
+>>> BƯỚC 2: GHÉP NỐI DỮ LIỆU VÀ TẠO BIẾN <<<
+
+. use "b1_household.dta", clear
+
+. merge 1:1 IDHO using "b2_demog.dta", keep(3) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            46,995  
+    -----------------------------------------
+
+. 
+. * --- CHUẨN HÓA BIẾN GIỚI TÍNH (DUMMY TRAP FIX) ---
+. * Gốc: 1=Nam, 2=Nữ. Cần recode thành: 1=Nam, 0=Nữ
+. recode SEX_HEAD (2 = 0)
+(13337 changes made to SEX_HEAD)
+
+. label define sex_lbl 1 "Nam" 0 "Nữ"
+
+. label values SEX_HEAD sex_lbl
+
+. 
+. * Ghép nối file hành vi khám bệnh (OOP)
+. merge 1:1 IDHO using "b3_oop.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                        37,343
+        from master                    25,495  (_merge==1)
+        from using                     11,848  (_merge==2)
+
+    Matched                            21,500  (_merge==3)
+    -----------------------------------------
+
+. 
+. * Những hộ không có trong file b3 ( _merge == 1) là những hộ KHÔNG ĐI KHÁM BỆNH
+. replace hh_vuot_tuyen = 0 if _merge == 1
+(25,495 real changes made)
+
+. replace so_ca_kham = 0 if _merge == 1
+(25,495 real changes made)
+
+. replace so_ca_vuot = 0 if _merge == 1
+(25,495 real changes made)
+
+. replace tyle_vuot = 0 if _merge == 1
+(25,495 real changes made)
+
+. drop _merge
+
+. 
+. * Ghép trọng số
+. merge m:1 tinh huyen xa diaban using "weight2024_ver2.dta", keep(3) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            46,995  
+    -----------------------------------------
+
+. 
+. * --- TẠO BIẾN CÔNG CỤ & LOG ---
+. bys tinh huyen xa: egen sum_ins = total(BHYT_RATE)
+
+. bys tinh huyen xa: gen count_hh = _N
+
+. gen IV_COMMUNE = (sum_ins - BHYT_RATE) / (count_hh - 1)
+
+. replace IV_COMMUNE = BHYT_RATE if count_hh == 1 
+(0 real changes made)
+
+. 
+. gen INS_DUMMY = (BHYT_RATE > 0)
+
+. 
+. * --- FIX LỖI MISSING DROP-OUT CHO CHI PHÍ Y TẾ ---
+. * Nếu hộ không phát sinh chi phí, biến gốc bị missing (.). Phải ép về 0 trước khi tính Log.
+. replace OOP_HH = 0 if missing(OOP_HH)
+(0 real changes made)
+
+. replace OOP_INPATIENT = 0 if missing(OOP_INPATIENT)
+(25,617 real changes made)
+
+. replace OOP_OUTPATIENT = 0 if missing(OOP_OUTPATIENT)
+(25,525 real changes made)
+
+. 
+. gen ln_OOP = ln(OOP_HH + 1)
+
+. gen ln_OOP_in = ln(OOP_INPATIENT + 1)   // Phân rã Nội trú
+
+. gen ln_OOP_out = ln(OOP_OUTPATIENT + 1) // Phân rã Ngoại trú
+
+. 
+. * --- TẠO CÁC BIẾN TƯƠNG TÁC (INTERACTIONS) ---
+. gen rural_vuot_exo = RURAL * hh_vuot_tuyen
+
+. gen ins_rural = INS_DUMMY * RURAL
+
+. gen ins_vuot = INS_DUMMY * hh_vuot_tuyen
+
+. gen ins_rural_vuot = INS_DUMMY * RURAL * hh_vuot_tuyen 
+
+. 
+. gen iv_rural = IV_COMMUNE * RURAL
+
+. gen iv_vuot = IV_COMMUNE * hh_vuot_tuyen
+
+. gen iv_rural_vuot = IV_COMMUNE * RURAL * hh_vuot_tuyen
+
+. 
+. * --- LABELING ENGLISH FOR Q1 JOURNALS ---
+. label var ln_OOP "Log(Total OOP + 1)"
+
+. label var ln_OOP_in "Log(Inpatient OOP + 1)"
+
+. label var ln_OOP_out "Log(Outpatient OOP + 1)"
+
+. label var INS_DUMMY "Health Insurance"
+
+. label var RURAL "Rural Area"
+
+. label var hh_vuot_tuyen "Bypassed Primary Care"
+
+. label var ins_rural_vuot "Insurance x Rural x Bypassed"
+
+. 
+. save "VHLSS24_Master_Analysis.dta", replace
+file VHLSS24_Master_Analysis.dta saved
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. ********************************************************************************
+. * BƯỚC 3: THIẾT LẬP TOÀN CỤC VÀ TRỌNG SỐ
+. ********************************************************************************
+. svyset [pw=wt9], strata(tinh) psu(diaban)
+
+Sampling weights: wt9
+             VCE: linearized
+     Single unit: missing
+        Strata 1: tinh
+ Sampling unit 1: diaban
+           FPC 1: <zero>
+
+. global X "ln_INC AGE_HEAD SEX_HEAD HH_SIZE" // Chỉ còn biến nhân khẩu học
+
+. 
+. capture which estout
+
+. if _rc cap ssc install estout
+
+. capture which coefplot
+
+. if _rc cap ssc install coefplot
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. ********************************************************************************
+. * THỐNG KÊ MÔ TẢ NÂNG CAO VÀ ĐỒ THỊ TRỰC QUAN CẤU TRÚC CHI PHÍ
+. ********************************************************************************
+. display ">>> RUNNING ADVANCED DESCRIPTIVE STATISTICS <<<"
+>>> RUNNING ADVANCED DESCRIPTIVE STATISTICS <<<
+
+. 
+. * --- BƯỚC CHECK 1: IN NHANH RA MÀN HÌNH ĐỂ KIỂM TRA N, MEAN, SD ---
+. * (Lệnh này in ra màn hình Stata mặc định để bạn xem trước số quan sát N xem có bị rớt mẫu không)
+. display "--- KIEM TRA NHANH SO LIEU TRONG STATA ---"
+--- KIEM TRA NHANH SO LIEU TRONG STATA ---
+
+. tabstat OOP_HH OOP_INPATIENT OOP_OUTPATIENT ln_INC AGE_HEAD SEX_HEAD HH_SIZE hh_vuot_tuyen [aw=wt9], ///
+>     by(INS_DUMMY) statistics(mean sd n) format(%9.3f) columns(statistics)
+
+Summary for variables: OOP_HH OOP_INPATIENT OOP_OUTPATIENT ln_INC AGE_HEAD SEX_HEAD HH_SIZE hh_vuot_tuyen
+Group variable: INS_DUMMY (Health Insurance)
+
+INS_DUMMY |      Mean        SD         N
+----------+------------------------------
+        0 |     1.501     5.550  1372.000
+          |     0.408     4.415  1372.000
+          |     0.397     2.034  1372.000
+          |     4.287     0.740  1372.000
+          |    51.034    12.274  1372.000
+          |     0.662     0.473  1372.000
+          |     2.195     1.211  1372.000
+          |     0.123     0.329  1372.000
+----------+------------------------------
+        1 |     5.705    13.184 45623.000
+          |     1.528    10.405 45623.000
+          |     1.371     5.205 45623.000
+          |     4.158     0.752 45623.000
+          |    54.036    13.707 45623.000
+          |     0.701     0.458 45623.000
+          |     3.554     1.641 45623.000
+          |     0.383     0.486 45623.000
+----------+------------------------------
+    Total |     5.578    13.040 46995.000
+          |     1.495    10.278 46995.000
+          |     1.341     5.141 46995.000
+          |     4.162     0.752 46995.000
+          |    53.945    13.675 46995.000
+          |     0.700     0.458 46995.000
+          |     3.513     1.646 46995.000
+          |     0.375     0.484 46995.000
+-----------------------------------------
+
+. display "--------------------------------------------------------"
+--------------------------------------------------------
+
+. 
+. * 1. Xuất bảng Thống kê mô tả chia theo nhóm BHYT (Insured vs Uninsured)
+. * Sử dụng estpost để lưu trữ giá trị Mean và SD vào bộ nhớ tạm
+. capture window drop _all
+
+. quietly estpost tabstat OOP_HH OOP_INPATIENT OOP_OUTPATIENT ln_INC AGE_HEAD SEX_HEAD HH_SIZE hh_vuot_tuyen [aw=wt9], /
+> //
+>     by(INS_DUMMY) statistics(mean sd) columns(statistics) listwise
+
+. 
+. * --- BƯỚC CHECK 2: IN BẢNG ĐỊNH DẠNG LATEX RA MÀN HÌNH ---
+. * (Lệnh esttab không có "using..." sẽ in y hệt cấu trúc bảng sẽ xuất ra file)
+. esttab, ///
+>     main(mean %6.3f) aux(sd %6.3f) nostar unstack nonote nomtitle nonumber label ///
+>     title("XEM TRUOC: Table 1b Baseline Characteristics") ///
+>     eqlabels("Uninsured" "Insured" "Total")
+
+XEM TRUOC: Table 1b Baseline Characteristics
+-----------------------------------------------------------
+                        Uninsured      Insured        Total
+-----------------------------------------------------------
+OOP_HH                      1.501        5.705        5.578
+                          (5.550)     (13.184)     (13.040)
+
+OOP_INPATIENT               0.408        1.528        1.495
+                          (4.415)     (10.405)     (10.278)
+
+OOP_OUTPATIENT              0.397        1.371        1.341
+                          (2.034)      (5.205)      (5.141)
+
+ln_INC                      4.287        4.158        4.162
+                          (0.740)      (0.752)      (0.752)
+
+AGE_HEAD                   51.034       54.036       53.945
+                         (12.274)     (13.707)     (13.675)
+
+SEX_HEAD                    0.662        0.701        0.700
+                          (0.473)      (0.458)      (0.458)
+
+HH_SIZE                     2.195        3.554        3.513
+                          (1.211)      (1.641)      (1.646)
+
+Bypassed Primary C~e        0.123        0.383        0.375
+                          (0.329)      (0.486)      (0.484)
+-----------------------------------------------------------
+Observations                46995                          
+-----------------------------------------------------------
+
+. 
+. * --- BƯỚC 3: XUẤT KẾT QUẢ CHÍNH THỨC RA FILE LATEX ---
+. esttab using "$tablepath\Table1b_Summary_by_Ins.tex", replace ///
+>     main(mean %6.3f) aux(sd %6.3f) nostar unstack nonote nomtitle nonumber label ///
+>     title("Table 1b: Baseline Characteristics by Health Insurance Status") ///
+>     eqlabels("Uninsured" "Insured" "Total")
+(output written to D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02
+> . De tai cuoi ky\01. Bai viet LAtex\tables\Table1b_Summary_by_Ins.tex)
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * 2. Vẽ đồ thị Stacked Bar: Cấu trúc OOP (Nội trú vs Ngoại trú) theo Khu vực & Vượt tuyến
+. preserve
+
+. collapse (mean) OOP_INPATIENT OOP_OUTPATIENT [aw=wt9], by(RURAL hh_vuot_tuyen)
+
+. 
+. * Tạo nhãn tiếng Anh chuẩn học thuật cho đồ thị
+. label define rural_lbl 0 "Urban" 1 "Rural"
+
+. label values RURAL rural_lbl
+
+. label define bypass_lbl 0 "Primary Care" 1 "Bypassed"
+
+. label values hh_vuot_tuyen bypass_lbl
+
+. 
+. graph bar OOP_INPATIENT OOP_OUTPATIENT, ///
+>     over(hh_vuot_tuyen) over(RURAL) stack ///
+>     ytitle("Mean OOP Expenditure (Million VND)") ///
+>     legend(order(1 "Inpatient OOP" 2 "Outpatient OOP") position(6) rows(1)) ///
+>     title("Figure 1b: Composition of OOP Expenditures", color(black) size(medium)) ///
+>     subtitle("By Region and Bypassing Behavior", color(gs5) size(small)) ///
+>     scheme(s1mono) bar(1, color(maroon)) bar(2, color(navy))
+
+. graph export "$figpath\Figure1b_StackedBar_OOP.png", as(png) replace width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure1b_StackedBar_OOP.png saved as PNG format
+
+. restore
+
+. 
+. * 3. Vẽ Boxplot: Phân phối Log(OOP) để thấy rõ các ca thảm họa (Outliers) ở phần đuôi
+. graph box ln_OOP, ///
+>     over(hh_vuot_tuyen, relabel(1 "Primary Care" 2 "Bypassed")) ///
+>     over(INS_DUMMY, relabel(1 "Uninsured" 2 "Insured")) ///
+>     ytitle("Log of Total OOP Expenditure") ///
+>     title("Figure 1c: Distribution of Medical Costs", color(black) size(medium)) ///
+>     subtitle("Highlighting Outlier Tail Risks", color(gs5) size(small)) ///
+>     scheme(s1mono) marker(1, msymbol(oh) msize(vsmall) mcolor(gs10)) ///
+>     box(1, color(black))
+
+. graph export "$figpath\Figure1c_Boxplot_Bypass.png", as(png) replace width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure1c_Boxplot_Bypass.png saved as PNG format
+
+. 
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. ********************************************************************************
+. * BƯỚC 5: TRỰC QUAN HÓA (VISUALIZATION FOR Q1)
+. ********************************************************************************
+. * 1. Forest Plot từ mô hình Tổng (Xuất vào thư mục FIGURES)
+. estimates restore iv_total
+estimation result iv_total not found
+r(111);
+
+end of do-file
+
+r(111);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. ********************************************************************************
+. * BƯỚC 4: MÔ HÌNH IV-2SLS VỚI PHÂN RÃ CHI PHÍ (DUAL EFFECT ANALYSIS)
+. ********************************************************************************
+. display ">>> RUNNING IV-2SLS DECOMPOSED MODELS <<<"
+>>> RUNNING IV-2SLS DECOMPOSED MODELS <<<
+
+. 
+. * 1. Mô hình Tổng chi phí OOP (Total)
+. quietly ivregress 2sls ln_OOP RURAL hh_vuot_tuyen rural_vuot_exo $X i.tinh ///
+>     (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_rural iv_vuot iv_rural_vuot) ///
+>     [pw=wt9], vce(cluster tinh)
+
+. estimates store iv_total
+
+. 
+. * 2. Mô hình Chi phí Nội trú (Inpatient - Thảm họa)
+. quietly ivregress 2sls ln_OOP_in RURAL hh_vuot_tuyen rural_vuot_exo $X i.tinh ///
+>     (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_rural iv_vuot iv_rural_vuot) ///
+>     [pw=wt9], vce(cluster tinh)
+
+. estimates store iv_inpatient
+
+. 
+. * 3. Mô hình Chi phí Ngoại trú (Outpatient - Khám thường)
+. quietly ivregress 2sls ln_OOP_out RURAL hh_vuot_tuyen rural_vuot_exo $X i.tinh ///
+>     (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_rural iv_vuot iv_rural_vuot) ///
+>     [pw=wt9], vce(cluster tinh)
+
+. estimates store iv_outpatient
+
+. 
+. * Xuất bảng phân rã OOP vào thư mục TABLES
+. esttab iv_total iv_inpatient iv_outpatient using "$tablepath\Dual_Effect_OOP.tex", replace ///
+>     title("Table: The Dual Effect of Health Insurance on Decomposed OOP Expenditures") ///
+>     mtitles("Total OOP" "Inpatient OOP" "Outpatient OOP") ///
+>     keep(INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot) ///
+>     coeflabels(INS_DUMMY "Health Insurance" ///
+>                ins_rural_vuot "Insured x Rural x Bypassed") ///
+>     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     indicate("Demographic Controls = ln_INC" "Province FE = *tinh")
+(output written to D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02
+> . De tai cuoi ky\01. Bai viet LAtex\tables\Dual_Effect_OOP.tex)
+
+. 
+. ********************************************************************************
+. * BƯỚC 5: TRỰC QUAN HÓA (VISUALIZATION FOR Q1)
+. ********************************************************************************
+. * 1. Forest Plot từ mô hình Tổng (Xuất vào thư mục FIGURES)
+. estimates restore iv_total
+(results iv_total are active now)
+
+. coefplot, ///
+>     keep(INS_DUMMY ins_rural ins_vuot ins_rural_vuot RURAL hh_vuot_tuyen rural_vuot_exo) ///
+>     xline(0, lpattern(dash) lcolor(red)) ///
+>     title("Figure 1: Coefficient Estimates of Health Insurance and Interactions", color(black)) ///
+>     xtitle("Effect on Log Out-of-Pocket Expenditure (ln_OOP)") ///
+>     msymbol(D) mcolor(navy) scheme(s1mono) grid(none)
+
+. graph export "$figpath\Figure1_ForestPlot.png", as(png) replace width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure1_ForestPlot.png saved as PNG format
+
+. 
+. * 2. Kernel Density Plot (Xuất vào thư mục FIGURES)
+. twoway (kdensity ln_OOP if INS_DUMMY == 1, color(navy) lwidth(medthick)) ///
+>        (kdensity ln_OOP if INS_DUMMY == 0, color(maroon) lpattern(dash) lwidth(medthick)), ///
+>        xtitle("Log Out-of-Pocket Expenditure (ln_OOP)") ///
+>        legend(order(1 "Insured" 2 "Uninsured") position(6) rows(1)) ///
+>        scheme(s1mono)
+
+. graph export "$figpath\Figure2_Kernel_Density.png", as(png) replace width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure2_Kernel_Density.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ==============================================================================
+. * XUẤT TỔNG HỢP KẾT QUẢ 
+. * ==============================================================================
+. 
+. * Mở một file log text để lưu toàn bộ kết quả in ra màn hình
+. capture log close

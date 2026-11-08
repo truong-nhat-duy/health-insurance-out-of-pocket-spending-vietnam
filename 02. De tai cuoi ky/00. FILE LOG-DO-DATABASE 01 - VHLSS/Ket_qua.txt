@@ -1,0 +1,1499 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De t
+> ai cuoi ky\00. FILE LOG-DO-DATABASE 01\Ket_qua.txt
+  log type:  text
+ opened on:  25 Feb 2026, 07:28:10
+
+. 
+. display "====================================================================="
+=====================================================================
+
+. display "1. THỐNG KÊ MÔ TẢ CÁC BIẾN (SUMMARY STATISTICS)"
+1. THỐNG KÊ MÔ TẢ CÁC BIẾN (SUMMARY STATISTICS)
+
+. display "====================================================================="
+=====================================================================
+
+. * Thống kê có trọng số mẫu để phản ánh đúng tổng thể
+. sum OOP_HH OOP_INPATIENT OOP_OUTPATIENT INS_DUMMY RURAL hh_vuot_tuyen ///
+>     ln_INC AGE_HEAD SEX_HEAD HH_SIZE IV_COMMUNE [aw=wt9]
+
+    Variable |     Obs      Weight        Mean   Std. dev.       Min        Max
+-------------+-----------------------------------------------------------------
+      OOP_HH |  46,995   143361540    5.578303   13.03958          0        660
+OOP_INPATI~T |  46,995   143361540    1.494544   10.27762          0        600
+OOP_OUTPAT~T |  46,995   143361540    1.341414   5.140955          0        324
+   INS_DUMMY |  46,995   143361540    .9699157   .1708212          0          1
+       RURAL |  46,995   143361540    .6026089   .4893634          0          1
+-------------+-----------------------------------------------------------------
+hh_vuot_tu~n |  46,995   143361540    .3753445   .4842169          0          1
+      ln_INC |  46,995   143361540    4.161702     .75221    .696641    11.1491
+    AGE_HEAD |  46,995   143361540     53.9455   13.67546         10        106
+    SEX_HEAD |  46,995   143361540     .699657    .458412          0          1
+     HH_SIZE |  46,995   143361540    3.512791   1.646184          1         16
+-------------+-----------------------------------------------------------------
+  IV_COMMUNE |  46,995   143361540    .9253682   .0995591   .0261905          1
+
+. 
+. display " "
+ 
+
+. display "====================================================================="
+=====================================================================
+
+. display "2. KẾT QUẢ MÔ HÌNH IV-2SLS (TỔNG OOP, NỘI TRÚ, NGOẠI TRÚ)"
+2. KẾT QUẢ MÔ HÌNH IV-2SLS (TỔNG OOP, NỘI TRÚ, NGOẠI TRÚ)
+
+. display "====================================================================="
+=====================================================================
+
+. * In bảng kết quả IV-2SLS ra thẳng màn hình text
+. esttab iv_total iv_inpatient iv_outpatient, ///
+>     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     keep(INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot) ///
+>     coeflabels(INS_DUMMY "BHYT (Base)" ///
+>                RURAL "Nong_thon" ///
+>                hh_vuot_tuyen "Vuot_tuyen" ///
+>                ins_rural "BHYT x Nong_thon" ///
+>                ins_vuot "BHYT x Vuot_tuyen" ///
+>                ins_rural_vuot "BHYT x Nong_thon x Vuot_tuyen") ///
+>     mtitles("Total_OOP" "Inpatient_OOP" "Outpatient_OOP") ///
+>     title("Bang 2: Hieu ung kep cua BHYT (IV-2SLS)")
+
+Bang 2: Hieu ung kep cua BHYT (IV-2SLS)
+------------------------------------------------------------
+                      (1)             (2)             (3)   
+                Total_OOP    Inpatient_~P    Outpatient~P   
+------------------------------------------------------------
+BHYT (Base)         1.256***       -0.219           0.292*  
+                  (0.177)         (0.155)         (0.157)   
+
+BHYT x Non~n       -0.967***       -0.115           0.035   
+                  (0.286)         (0.178)         (0.137)   
+
+BHYT x Vuo~n        2.413           2.806           0.405   
+                  (1.833)         (2.172)         (1.513)   
+
+BHYT x Non~n       -3.533          -1.345          -2.971*  
+                  (2.151)         (2.431)         (1.707)   
+
+Nong_thon           0.850***        0.083          -0.026   
+                  (0.262)         (0.155)         (0.133)   
+
+Vuot_tuyen         -1.648          -2.244           0.443   
+                  (1.795)         (2.092)         (1.493)   
+------------------------------------------------------------
+N                   46995           46995           46995   
+------------------------------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+
+. 
+. display " "
+ 
+
+. display "====================================================================="
+=====================================================================
+
+. display "3. KẾT QUẢ GHÉP CẶP ĐIỂM XU HƯỚNG (PSM)"
+3. KẾT QUẢ GHÉP CẶP ĐIỂM XU HƯỚNG (PSM)
+
+. display "====================================================================="
+=====================================================================
+
+. * Gọi lại mô hình PSM đã loại bỏ các quan sát vi phạm
+. teffects psmatch (ln_OOP) ///
+>     (INS_DUMMY RURAL hh_vuot_tuyen ln_INC AGE_HEAD SEX_HEAD HH_SIZE i.tinh, probit) ///
+>     if vi_pham_overlap == 0, nneighbor(1) vce(robust)
+vi_pham_overlap not found
+r(111);
+
+end of do-file
+
+r(111);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ==============================================================================
+. * CHẠY LẠI MÔ HÌNH VỚI DỮ LIỆU CHUẨN (N = 46,995)
+. * ==============================================================================
+. 
+. display ">>> CHẠY LẠI IV-2SLS CHO NỘI TRÚ VÀ NGOẠI TRÚ <<<"
+>>> CHẠY LẠI IV-2SLS CHO NỘI TRÚ VÀ NGOẠI TRÚ <<<
+
+. 
+. * Mô hình Nội trú
+. quietly ivregress 2sls ln_OOP_in RURAL hh_vuot_tuyen rural_vuot_exo $X i.tinh ///
+>     (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_rural iv_vuot iv_rural_vuot) ///
+>     [pw=wt9], vce(cluster tinh)
+
+. estimates store iv_inpatient
+
+. 
+. * Mô hình Ngoại trú
+. quietly ivregress 2sls ln_OOP_out RURAL hh_vuot_tuyen rural_vuot_exo $X i.tinh ///
+>     (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_rural iv_vuot iv_rural_vuot) ///
+>     [pw=wt9], vce(cluster tinh)
+
+. estimates store iv_outpatient
+
+. 
+. * In lại bảng kết quả ra màn hình để kiểm tra
+. esttab iv_total iv_inpatient iv_outpatient, ///
+>     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     keep(INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot) ///
+>     coeflabels(INS_DUMMY "BHYT (Base)" ///
+>                ins_rural "BHYT x Nong_thon" ///
+>                ins_vuot "BHYT x Vuot_tuyen" ///
+>                ins_rural_vuot "BHYT x Nong x Vuot_tuyen") ///
+>     mtitles("Total_OOP" "Inpatient_OOP" "Outpatient_OOP") ///
+>     title("BANG KET QUA DA FIX LOI MAT QUAN SAT (N=46995)")
+
+BANG KET QUA DA FIX LOI MAT QUAN SAT (N=46995)
+------------------------------------------------------------
+                      (1)             (2)             (3)   
+                Total_OOP    Inpatient_~P    Outpatient~P   
+------------------------------------------------------------
+BHYT (Base)         1.256***       -0.219           0.292*  
+                  (0.177)         (0.155)         (0.157)   
+
+BHYT x Non~n       -0.967***       -0.115           0.035   
+                  (0.286)         (0.178)         (0.137)   
+
+BHYT x Vuo~n        2.413           2.806           0.405   
+                  (1.833)         (2.172)         (1.513)   
+
+BHYT x Non~n       -3.533          -1.345          -2.971*  
+                  (2.151)         (2.431)         (1.707)   
+
+RURAL               0.850***        0.083          -0.026   
+                  (0.262)         (0.155)         (0.133)   
+
+hh_vuot_tu~n       -1.648          -2.244           0.443   
+                  (1.795)         (2.092)         (1.493)   
+------------------------------------------------------------
+N                   46995           46995           46995   
+------------------------------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+
+. 
+. display ">>> BƯỚC 3: XUẤT BẢNG KẾT QUẢ CHO LATEX <<<"
+>>> BƯỚC 3: XUẤT BẢNG KẾT QUẢ CHO LATEX <<<
+
+. 
+. * Xuất bảng so sánh 3 mô hình vào thư mục Tables
+. esttab iv_total iv_inpatient iv_outpatient using "$tablepath\Table2_Decomposed_OOP.tex", replace ///
+>     title("Table 2: The Dual Effect of Health Insurance on Decomposed OOP Expenditures") ///
+>     mtitles("Total OOP" "Inpatient OOP" "Outpatient OOP") ///
+>     keep(INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot) ///
+>     coeflabels(INS_DUMMY "Health Insurance (HI)" ///
+>                RURAL "Rural Area" ///
+>                hh_vuot_tuyen "Bypassed Primary Care" ///
+>                ins_rural "HI $\times$ Rural" ///
+>                ins_vuot "HI $\times$ Bypassed" ///
+>                ins_rural_vuot "HI $\times$ Rural $\times$ Bypassed") ///
+>     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     indicate("Demographic Controls = ln_INC" "Province FE = *tinh") ///
+>     addnotes("Robust standard errors clustered at the province level in parentheses.")
+(output written to D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02
+> . De tai cuoi ky\01. Bai viet LAtex\tables\Table2_Decomposed_OOP.tex)
+
+. 
+. 
+. display ">>> BƯỚC 4: VẼ ĐỒ THỊ FOREST PLOT GỘP (COMBINED COEFPLOT) <<<"
+>>> BƯỚC 4: VẼ ĐỒ THỊ FOREST PLOT GỘP (COMBINED COEFPLOT) <<<
+
+. 
+. * Cần cài đặt coefplot nếu chưa có: ssc install coefplot
+. * Vẽ đồ thị so sánh hệ số của 3 mô hình trên cùng 1 trục
+. coefplot (iv_total, label("Total OOP") msymbol(S) mcolor(black)) ///
+>          (iv_inpatient, label("Inpatient OOP (Severe)") msymbol(D) mcolor(maroon)) ///
+>          (iv_outpatient, label("Outpatient OOP (Mild)") msymbol(T) mcolor(navy)), ///
+>     keep(INS_DUMMY ins_rural ins_vuot ins_rural_vuot) ///
+>     coeflabels(INS_DUMMY = "Health Insurance (HI)" ///
+>                ins_rural = "HI x Rural" ///
+>                ins_vuot = "HI x Bypassed" ///
+>                ins_rural_vuot = "HI x Rural x Bypassed") ///
+>     xline(0, lpattern(dash) lcolor(gs10)) ///
+>     title("Figure 3: Heterogeneous Effects on Decomposed OOP Expenditures", size(medsmall) color(black)) ///
+>     xtitle("Effect Size on Log(OOP)", size(small)) ///
+>     legend(position(6) rows(1)) ///
+>     ciopts(lwidth(thin)) ///
+>     scheme(s1mono) grid(none) offset(0.15)
+
+. 
+. * Xuất hình ảnh vào thư mục Figures
+. graph export "$figpath\Figure3_Combined_ForestPlot.png", as(png) replace width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure3_Combined_ForestPlot.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. ********************************************************************************
+. * BƯỚC 6: KIỂM TRA ĐỘ VỮNG (ROBUSTNESS CHECKS)
+. ********************************************************************************
+. display ">>> RUNNING ROBUSTNESS CHECKS <<<"
+>>> RUNNING ROBUSTNESS CHECKS <<<
+
+. 
+. * 1. PSM (Đã loại bỏ quan sát vi phạm Overlap)
+. capture drop vi_pham_overlap 
+
+. capture teffects psmatch (ln_OOP) ///
+>     (INS_DUMMY RURAL hh_vuot_tuyen $X i.tinh, probit), ///
+>     nneighbor(1) vce(robust) osample(vi_pham_overlap)
+
+. 
+. teffects psmatch (ln_OOP) ///
+>     (INS_DUMMY RURAL hh_vuot_tuyen $X i.tinh, probit) ///
+>     if vi_pham_overlap == 0, nneighbor(1) vce(robust)
+
+Treatment-effects estimation                   Number of obs      =     46,744
+Estimator      : propensity-score matching     Matches: requested =          1
+Outcome model  : matching                                     min =          1
+Treatment model: probit                                       max =          1
+------------------------------------------------------------------------------
+             |              AI robust
+      ln_OOP | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+ATE          |
+   INS_DUMMY |
+   (1 vs 0)  |    .513017   .0828196     6.19   0.000     .3506935    .6753405
+------------------------------------------------------------------------------
+
+. 
+. tebalance density ln_INC
+(refitting the model using the generate() option)
+
+. * Xuất Balance Plot vào thư mục FIGURES
+. graph export "$figpath\Figure3_Balance_Plot.png", as(png) replace width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure3_Balance_Plot.png saved as PNG format
+
+. 
+. * 2. SQREG (Không Fixed Effects tỉnh để tránh lỗi hội tụ)
+. set seed 12345 
+
+. sqreg ln_OOP INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot ///
+>       $X, q(.25 .50 .75 .90) reps(100)
+(fitting base model)
+
+Bootstrap replications (100)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+..................................................    50
+..................................................   100
+
+Simultaneous quantile regression                    Number of obs =     46,995
+  bootstrap(100) SEs                                .25 Pseudo R2 =     0.2021
+                                                    .50 Pseudo R2 =     0.2089
+                                                    .75 Pseudo R2 =     0.2603
+                                                    .90 Pseudo R2 =     0.3140
+
+--------------------------------------------------------------------------------
+               |              Bootstrap
+        ln_OOP | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+q25            |
+     INS_DUMMY |   .5848557   .0251885    23.22   0.000     .5354858    .6342256
+         RURAL |   .0632131   .0278195     2.27   0.023     .0086866    .1177397
+ hh_vuot_tuyen |   .5584501   .0805618     6.93   0.000     .4005477    .7163525
+     ins_rural |   -.198068   .0304021    -6.51   0.000    -.2576565   -.1384795
+      ins_vuot |  -.0454531   .0825939    -0.55   0.582    -.2073383    .1164321
+ins_rural_vuot |   .1702218   .0191919     8.87   0.000     .1326054    .2078382
+        ln_INC |   .2674687   .0049104    54.47   0.000     .2578443    .2770931
+      AGE_HEAD |   .0047767   .0002627    18.19   0.000     .0042619    .0052915
+      SEX_HEAD |    .007422   .0093303     0.80   0.426    -.0108656    .0257095
+       HH_SIZE |   .1312088   .0028541    45.97   0.000     .1256148    .1368029
+         _cons |  -1.587843   .0387212   -41.01   0.000    -1.663737   -1.511949
+---------------+----------------------------------------------------------------
+q50            |
+     INS_DUMMY |   .6810052   .0233321    29.19   0.000     .6352739    .7267365
+         RURAL |   .0180815    .022929     0.79   0.430    -.0268596    .0630226
+ hh_vuot_tuyen |   .9163215   .0884807    10.36   0.000      .742898    1.089745
+     ins_rural |  -.0725332   .0242249    -2.99   0.003    -.1200143   -.0250521
+      ins_vuot |  -.2903319   .0899561    -3.23   0.001    -.4666472   -.1140167
+ins_rural_vuot |   .0791619   .0171872     4.61   0.000     .0454747    .1128491
+        ln_INC |   .2038555   .0051658    39.46   0.000     .1937304    .2139806
+      AGE_HEAD |   .0042782   .0002723    15.71   0.000     .0037445    .0048119
+      SEX_HEAD |   .0437396   .0071791     6.09   0.000     .0296684    .0578108
+       HH_SIZE |   .1433991   .0022132    64.79   0.000     .1390611     .147737
+         _cons |  -1.111017   .0355766   -31.23   0.000    -1.180748   -1.041286
+---------------+----------------------------------------------------------------
+q75            |
+     INS_DUMMY |   .6685744   .0331678    20.16   0.000     .6035651    .7335837
+         RURAL |    -.04888   .0396601    -1.23   0.218    -.1266144    .0288544
+ hh_vuot_tuyen |   1.654414   .1206825    13.71   0.000     1.417874    1.890953
+     ins_rural |   .0137496   .0411306     0.33   0.738    -.0668669    .0943662
+      ins_vuot |  -.6426386   .1251014    -5.14   0.000    -.8878391   -.3974381
+ins_rural_vuot |   .0547574   .0252951     2.16   0.030     .0051787    .1043361
+        ln_INC |   .1542444   .0055385    27.85   0.000     .1433889    .1650999
+      AGE_HEAD |   .0041719   .0003044    13.70   0.000     .0035752    .0047686
+      SEX_HEAD |   .0302466   .0075919     3.98   0.000     .0153664    .0451268
+       HH_SIZE |   .1452751   .0027264    53.29   0.000     .1399314    .1506188
+         _cons |  -.6186207   .0396614   -15.60   0.000    -.6963577   -.5408837
+---------------+----------------------------------------------------------------
+q90            |
+     INS_DUMMY |    .675317   .0429668    15.72   0.000     .5911015    .7595325
+         RURAL |   -.043004   .0619754    -0.69   0.488    -.1644766    .0784687
+ hh_vuot_tuyen |   2.038782   .2280739     8.94   0.000     1.591754     2.48581
+     ins_rural |  -.0106938   .0641493    -0.17   0.868    -.1364274    .1150397
+      ins_vuot |  -.6047323   .2283806    -2.65   0.008    -1.052362   -.1571031
+ins_rural_vuot |   .0441364   .0311219     1.42   0.156     -.016863    .1051358
+        ln_INC |   .1680303   .0068054    24.69   0.000     .1546916     .181369
+      AGE_HEAD |   .0061404   .0004542    13.52   0.000     .0052501    .0070307
+      SEX_HEAD |   .0257272   .0126633     2.03   0.042      .000907    .0505474
+       HH_SIZE |   .1303476   .0042538    30.64   0.000       .12201    .1386852
+         _cons |  -.4547536   .0577676    -7.87   0.000     -.567979   -.3415282
+--------------------------------------------------------------------------------
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ==============================================================================
+. * TỔNG HỢP KIỂM ĐỊNH CÁC MÔ HÌNH (ROBUSTNESS & POST-ESTIMATION TESTS)
+. * ==============================================================================
+. 
+. * Cài đặt các gói lệnh cần thiết (Bỏ qua nếu máy bạn đã cài)
+. * ssc install ivreg2, replace
+. * ssc install ranktest, replace
+. 
+. * ------------------------------------------------------------------------------
+. * 1. KIỂM ĐỊNH ĐA CỘNG TUYẾN (MULTICOLLINEARITY)
+. * ------------------------------------------------------------------------------
+. display ">>> 1. KIEM DINH VIF CHO MO HINH CO SO <<<"
+>>> 1. KIEM DINH VIF CHO MO HINH CO SO <<<
+
+. quietly reg ln_OOP INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot ln_INC $X i.tinh [pw=wt9]
+
+. vif
+
+    Variable |       VIF       1/VIF  
+-------------+----------------------
+   INS_DUMMY |      2.48    0.402954
+       RURAL |     32.70    0.030577
+hh_vuot_tu~n |     72.65    0.013765
+   ins_rural |     34.60    0.028904
+    ins_vuot |     74.88    0.013354
+ins_rural_~t |      3.07    0.326066
+      ln_INC |      1.23    0.812069
+    AGE_HEAD |      1.15    0.869105
+    SEX_HEAD |      1.10    0.912429
+     HH_SIZE |      1.15    0.868413
+        tinh |
+          2  |      1.10    0.909955
+          4  |      1.07    0.937595
+          6  |      1.05    0.955272
+          8  |      1.10    0.906301
+         10  |      1.09    0.916106
+         11  |      1.07    0.934770
+         12  |      1.06    0.943318
+         14  |      1.16    0.863772
+         15  |      1.11    0.903768
+         17  |      1.11    0.898603
+         19  |      1.16    0.864548
+         20  |      1.10    0.906786
+         22  |      1.17    0.857355
+         24  |      1.21    0.829333
+         25  |      1.17    0.852170
+         26  |      1.12    0.891988
+         27  |      1.18    0.850804
+         30  |      1.22    0.820810
+         31  |      1.24    0.804891
+         33  |      1.15    0.866617
+         34  |      1.28    0.780487
+         35  |      1.11    0.899729
+         36  |      1.26    0.792786
+         37  |      1.13    0.883065
+         38  |      1.40    0.715430
+         40  |      1.40    0.713429
+         42  |      1.19    0.839745
+         44  |      1.12    0.894732
+         45  |      1.08    0.929323
+         46  |      1.12    0.890724
+         48  |      1.15    0.869092
+         49  |      1.19    0.842423
+         51  |      1.15    0.868227
+         52  |      1.19    0.839515
+         54  |      1.12    0.895011
+         56  |      1.16    0.861649
+         58  |      1.07    0.934850
+         60  |      1.15    0.873058
+         62  |      1.07    0.933807
+         64  |      1.15    0.866888
+         66  |      1.23    0.815415
+         67  |      1.08    0.927317
+         68  |      1.15    0.869162
+         70  |      1.13    0.887474
+         72  |      1.16    0.865285
+         74  |      1.43    0.701484
+         75  |      1.39    0.719248
+         77  |      1.14    0.876207
+         79  |      2.21    0.453416
+         80  |      1.20    0.830424
+         82  |      1.21    0.826632
+         83  |      1.18    0.845641
+         84  |      1.14    0.878066
+         86  |      1.14    0.878079
+         87  |      1.19    0.837609
+         89  |      1.23    0.813444
+         91  |      1.20    0.836740
+         92  |      1.15    0.873115
+         93  |      1.09    0.920399
+         94  |      1.14    0.874318
+         95  |      1.10    0.907148
+         96  |      1.15    0.872344
+-------------+----------------------
+    Mean VIF |      4.14
+
+. * Tiêu chuẩn: VIF của các biến kiểm soát (X) < 10 là an toàn. VIF của các biến tương tác cao là bình thường.
+. 
+. * ------------------------------------------------------------------------------
+. * 2. KIỂM ĐỊNH MÔ HÌNH BIẾN CÔNG CỤ (IV-2SLS)
+. * ------------------------------------------------------------------------------
+. display ">>> 2. KIEM DINH NO SINH VA BIEN CONG CU YEU (IV-2SLS) <<<"
+>>> 2. KIEM DINH NO SINH VA BIEN CONG CU YEU (IV-2SLS) <<<
+
+. * Lệnh ivreg2 sẽ tự động xuất ra các kiểm định Kleibergen-Paap và Durbin-Wu-Hausman
+. ivreg2 ln_OOP RURAL hh_vuot_tuyen rural_vuot_exo $X i.tinh ///
+>     (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_rural iv_vuot iv_rural_vuot), ///
+>     cluster(tinh) endog(INS_DUMMY ins_rural ins_vuot ins_rural_vuot) first
+command ivreg2 is unrecognized
+r(199);
+
+end of do-file
+
+r(199);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 3. KIỂM ĐỊNH MÔ HÌNH PHÂN VỊ (SQREG)
+. * ------------------------------------------------------------------------------
+. display ">>> 3. KIEM DINH TINH PHI TUYEN CUA BHYT TREN CAC PHAN VI (SQREG) <<<"
+>>> 3. KIEM DINH TINH PHI TUYEN CUA BHYT TREN CAC PHAN VI (SQREG) <<<
+
+. * Chạy lại mô hình SQREG (có thể mất vài phút vì bootstrap 100 lần)
+. quietly sqreg ln_OOP INS_DUMMY hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot ln_INC $X i.tinh, ///
+>     quantiles(.25 .50 .75 .90) reps(100)
+convergence not achieved.
+convergence not achieved
+r(430);
+
+end of do-file
+
+r(430);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 4. KIỂM ĐỊNH GHÉP CẶP ĐIỂM XU HƯỚNG (PSM)
+. * ------------------------------------------------------------------------------
+. display ">>> 4. KIEM DINH SU CAN BANG VA VUNG HO TRO CHUNG (PSM) <<<"
+>>> 4. KIEM DINH SU CAN BANG VA VUNG HO TRO CHUNG (PSM) <<<
+
+. quietly teffects psmatch (ln_OOP) (INS_DUMMY $X, probit), nn(1) vce(iid)
+there are 83 propensity scores greater than 1 - 1.00e-05
+treatment overlap assumption has been violated; use the osample() option to identify the observations
+r(459);
+
+end of do-file
+
+r(459);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ==============================================================================
+. * TỔNG HỢP KIỂM ĐỊNH CÁC MÔ HÌNH (ROBUSTNESS & POST-ESTIMATION TESTS)
+. * ==============================================================================
+. 
+. * Cài đặt các gói lệnh cần thiết (Bỏ qua nếu máy bạn đã cài)
+. ssc install ivreg2, replace
+checking ivreg2 consistency and verifying not already installed...
+installing into C:\Users\Admin\ado\plus\...
+installation complete.
+
+. ssc install ranktest, replace
+checking ranktest consistency and verifying not already installed...
+installing into C:\Users\Admin\ado\plus\...
+installation complete.
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 2. KIỂM ĐỊNH MÔ HÌNH BIẾN CÔNG CỤ (IV-2SLS)
+. * ------------------------------------------------------------------------------
+. display ">>> 2. KIEM DINH NO SINH VA BIEN CONG CU YEU (IV-2SLS) <<<"
+>>> 2. KIEM DINH NO SINH VA BIEN CONG CU YEU (IV-2SLS) <<<
+
+. * Lệnh ivreg2 sẽ tự động xuất ra các kiểm định Kleibergen-Paap và Durbin-Wu-Hausman
+. ivreg2 ln_OOP RURAL hh_vuot_tuyen rural_vuot_exo $X i.tinh ///
+>     (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_rural iv_vuot iv_rural_vuot), ///
+>     cluster(tinh) endog(INS_DUMMY ins_rural ins_vuot ins_rural_vuot) first
+
+First-stage regressions
+-----------------------
+
+
+First-stage regression of INS_DUMMY:
+
+Statistics robust to heteroskedasticity and clustering on tinh
+Number of obs =                  46995
+Number of clusters (tinh) =         63
+--------------------------------------------------------------------------------
+               |               Robust
+     INS_DUMMY | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+    IV_COMMUNE |   .4719032   .0548951     8.60   0.000      .364308    .5794984
+      iv_rural |  -.1162101   .0561642    -2.07   0.039    -.2262927   -.0061274
+       iv_vuot |  -.3457551    .071971    -4.80   0.000    -.4868194   -.2046909
+ iv_rural_vuot |   .1693342   .0711869     2.38   0.017     .0298068    .3088615
+         RURAL |   .1138072   .0518605     2.19   0.028       .01216    .2154545
+ hh_vuot_tuyen |   .3505631   .0679861     5.16   0.000     .2173093    .4838169
+rural_vuot_exo |   -.167177   .0663406    -2.52   0.012    -.2972055   -.0371485
+        ln_INC |  -.0003155   .0010399    -0.30   0.762    -.0023537    .0017227
+      AGE_HEAD |   .0004665   .0000878     5.31   0.000     .0002943    .0006386
+      SEX_HEAD |  -.0046946   .0019896    -2.36   0.018    -.0085943   -.0007948
+       HH_SIZE |    .014207   .0009192    15.46   0.000     .0124054    .0160086
+               |
+          tinh |
+            2  |  -.0043859   .0016955    -2.59   0.010     -.007709   -.0010628
+            4  |   .0036942   .0013813     2.67   0.007     .0009869    .0064015
+            6  |   .0064604   .0011591     5.57   0.000     .0041885    .0087322
+            8  |    .004664   .0011429     4.08   0.000     .0024238    .0069041
+           10  |  -.0047958   .0012534    -3.83   0.000    -.0072525   -.0023392
+           11  |  -.0032423   .0019697    -1.65   0.100     -.007103    .0006184
+           12  |   .0012381   .0011141     1.11   0.266    -.0009456    .0034217
+           14  |  -.0099837   .0012374    -8.07   0.000     -.012409   -.0075584
+           15  |  -.0075384   .0009663    -7.80   0.000    -.0094323   -.0056444
+           17  |  -.0129709   .0008899   -14.58   0.000     -.014715   -.0112267
+           19  |   .0049944   .0018768     2.66   0.008     .0013158     .008673
+           20  |   .0025355    .001535     1.65   0.099    -.0004731    .0055441
+           22  |   .0020167   .0017234     1.17   0.242    -.0013612    .0053945
+           24  |   .0007538   .0015041     0.50   0.616    -.0021943    .0037019
+           25  |   .0051171    .000976     5.24   0.000      .003204    .0070301
+           26  |   -.011456   .0011108   -10.31   0.000    -.0136332   -.0092788
+           27  |  -.0000967   .0007761    -0.12   0.901    -.0016179    .0014246
+           30  |   .0093916   .0011647     8.06   0.000     .0071087    .0116745
+           31  |  -.0025783   .0008583    -3.00   0.003    -.0042606    -.000896
+           33  |  -.0009178   .0009097    -1.01   0.313    -.0027009    .0008652
+           34  |  -.0014567   .0011444    -1.27   0.203    -.0036997    .0007864
+           35  |   .0081344   .0015408     5.28   0.000     .0051144    .0111544
+           36  |   .0040845   .0011481     3.56   0.000     .0018343    .0063347
+           37  |   .0031908   .0013837     2.31   0.021     .0004788    .0059029
+           38  |   .0047539   .0012272     3.87   0.000     .0023486    .0071591
+           40  |   .0050947   .0012513     4.07   0.000     .0026421    .0075472
+           42  |   .0018937   .0011722     1.62   0.106    -.0004038    .0041913
+           44  |   .0042075   .0012436     3.38   0.001       .00177    .0066449
+           45  |  -.0059418   .0012461    -4.77   0.000    -.0083842   -.0034993
+           46  |  -.0001488   .0021516    -0.07   0.945     -.004366    .0040684
+           48  |   -.003423   .0016321    -2.10   0.036     -.006622    -.000224
+           49  |  -.0039331   .0012074    -3.26   0.001    -.0062996   -.0015666
+           51  |  -.0027281   .0011997    -2.27   0.023    -.0050795   -.0003767
+           52  |  -.0040567   .0010636    -3.81   0.000    -.0061414    -.001972
+           54  |   .0056807   .0010815     5.25   0.000      .003561    .0078004
+           56  |   .0007313   .0012222     0.60   0.550    -.0016642    .0031268
+           58  |   .0093694   .0007444    12.59   0.000     .0079103    .0108285
+           60  |   .0011698   .0014058     0.83   0.405    -.0015856    .0039252
+           62  |  -.0061945   .0009939    -6.23   0.000    -.0081426   -.0042463
+           64  |   .0098123   .0009633    10.19   0.000     .0079242    .0117005
+           66  |    .000847   .0008031     1.05   0.292    -.0007271    .0024211
+           67  |  -.0112585   .0013629    -8.26   0.000    -.0139298   -.0085871
+           68  |   .0004829   .0005516     0.88   0.381    -.0005982    .0015641
+           70  |  -.0050045   .0012352    -4.05   0.000    -.0074255   -.0025834
+           72  |  -.0071087   .0009548    -7.44   0.000    -.0089802   -.0052372
+           74  |  -.0045497   .0026396    -1.72   0.085    -.0097234    .0006239
+           75  |   .0021141   .0007897     2.68   0.007     .0005663    .0036619
+           77  |  -.0191148   .0014996   -12.75   0.000     -.022054   -.0161756
+           79  |   -.002452   .0011839    -2.07   0.038    -.0047726   -.0001315
+           80  |  -.0004724   .0006542    -0.72   0.470    -.0017547    .0008099
+           82  |  -.0031583   .0008352    -3.78   0.000    -.0047952   -.0015213
+           83  |  -.0003842   .0008345    -0.46   0.645    -.0020198    .0012515
+           84  |  -.0096731    .001148    -8.43   0.000    -.0119231    -.007423
+           86  |   .0003907   .0008736     0.45   0.655    -.0013216     .002103
+           87  |  -.0055742   .0007805    -7.14   0.000    -.0071041   -.0040443
+           89  |  -.0042163   .0005937    -7.10   0.000      -.00538   -.0030526
+           91  |  -.0159009   .0009951   -15.98   0.000    -.0178513   -.0139505
+           92  |   -.015672   .0009356   -16.75   0.000    -.0175059   -.0138382
+           93  |  -.0035726   .0007718    -4.63   0.000    -.0050852   -.0020599
+           94  |  -.0115369   .0009131   -12.63   0.000    -.0133267   -.0097472
+           95  |   -.011128   .0017877    -6.22   0.000     -.014632   -.0076241
+           96  |  -.0010901   .0009182    -1.19   0.235    -.0028898    .0007097
+               |
+         _cons |   .4515832   .0496844     9.09   0.000      .354201    .5489654
+--------------------------------------------------------------------------------
+F test of excluded instruments:
+  F(  4,    62) =    96.68
+  Prob > F      =   0.0000
+Sanderson-Windmeijer multivariate F test of excluded instruments:
+  F(  1,    62) =    96.65
+  Prob > F      =   0.0000
+
+
+First-stage regression of ins_rural:
+
+Statistics robust to heteroskedasticity and clustering on tinh
+Number of obs =                  46995
+Number of clusters (tinh) =         63
+--------------------------------------------------------------------------------
+               |               Robust
+     ins_rural | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+    IV_COMMUNE |  -.0038067   .0034112    -1.12   0.264    -.0104927    .0028793
+      iv_rural |   .3612773   .0199444    18.11   0.000     .3221861    .4003686
+       iv_vuot |   .0038776   .0041674     0.93   0.352    -.0042906    .0120459
+ iv_rural_vuot |  -.1775771   .0380644    -4.67   0.000    -.2521838   -.1029703
+         RURAL |   .6278945   .0192063    32.69   0.000     .5902499    .6655391
+ hh_vuot_tuyen |  -.0062401   .0036715    -1.70   0.089    -.0134363    .0009561
+rural_vuot_exo |   .1887815   .0368517     5.12   0.000     .1165516    .2610114
+        ln_INC |  -.0011965   .0008315    -1.44   0.150    -.0028262    .0004332
+      AGE_HEAD |   .0002514   .0000531     4.73   0.000     .0001473    .0003554
+      SEX_HEAD |  -.0019169    .001119    -1.71   0.087    -.0041102    .0002764
+       HH_SIZE |    .008452   .0006069    13.93   0.000     .0072625    .0096416
+               |
+          tinh |
+            2  |   .0027895     .00136     2.05   0.040     .0001239    .0054552
+            4  |   .0033354   .0009534     3.50   0.000     .0014667    .0052041
+            6  |   .0044707   .0010052     4.45   0.000     .0025005    .0064408
+            8  |   .0072903    .000665    10.96   0.000     .0059869    .0085938
+           10  |  -.0026088   .0006941    -3.76   0.000    -.0039693   -.0012483
+           11  |   .0004504    .001065     0.42   0.672    -.0016371    .0025379
+           12  |   .0034199   .0009221     3.71   0.000     .0016126    .0052273
+           14  |   -.005806   .0007696    -7.54   0.000    -.0073144   -.0042976
+           15  |  -.0057226   .0005341   -10.71   0.000    -.0067695   -.0046757
+           17  |  -.0115054    .000549   -20.96   0.000    -.0125815   -.0104293
+           19  |   .0063396   .0008815     7.19   0.000     .0046118    .0080673
+           20  |  -.0007534   .0007974    -0.94   0.345    -.0023164    .0008095
+           22  |   .0046425   .0006024     7.71   0.000     .0034619    .0058231
+           24  |   .0029484   .0008161     3.61   0.000     .0013488    .0045481
+           25  |   .0049383   .0006403     7.71   0.000     .0036834    .0061933
+           26  |  -.0060127   .0005286   -11.38   0.000    -.0070487   -.0049767
+           27  |   .0013225   .0006028     2.19   0.028     .0001411    .0025039
+           30  |   .0087653   .0004097    21.40   0.000     .0079623    .0095683
+           31  |   .0019611   .0004985     3.93   0.000     .0009841    .0029381
+           33  |   .0035102   .0004353     8.06   0.000     .0026569    .0043635
+           34  |   .0027928   .0008122     3.44   0.001     .0012009    .0043846
+           35  |   .0081678   .0007879    10.37   0.000     .0066234    .0097122
+           36  |   .0056657   .0007703     7.36   0.000     .0041559    .0071754
+           37  |   .0041499   .0008348     4.97   0.000     .0025137    .0057861
+           38  |   .0050681    .000676     7.50   0.000     .0037431     .006393
+           40  |   .0056177   .0007468     7.52   0.000      .004154    .0070814
+           42  |   .0013491   .0005643     2.39   0.017     .0002431     .002455
+           44  |   .0036973   .0005978     6.18   0.000     .0025256     .004869
+           45  |  -.0009393   .0008321    -1.13   0.259    -.0025702    .0006916
+           46  |   .0006919    .000876     0.79   0.430     -.001025    .0024089
+           48  |  -.0001972    .000738    -0.27   0.789    -.0016437    .0012494
+           49  |   .0000145   .0005555     0.03   0.979    -.0010744    .0011033
+           51  |   .0012359   .0007281     1.70   0.090    -.0001911    .0026629
+           52  |   .0007255   .0006627     1.09   0.274    -.0005735    .0020245
+           54  |   .0076196    .000711    10.72   0.000     .0062261    .0090131
+           56  |   .0054899   .0006427     8.54   0.000     .0042303    .0067496
+           58  |   .0080831   .0005291    15.28   0.000     .0070461      .00912
+           60  |   .0053248   .0005014    10.62   0.000      .004342    .0063075
+           62  |  -.0021846   .0008519    -2.56   0.010    -.0038543   -.0005149
+           64  |   .0107352   .0006824    15.73   0.000     .0093977    .0120728
+           66  |    .004881   .0005815     8.39   0.000     .0037413    .0060207
+           67  |  -.0051859   .0013435    -3.86   0.000    -.0078192   -.0025525
+           68  |   .0071105   .0004244    16.75   0.000     .0062786    .0079424
+           70  |   .0023597   .0007678     3.07   0.002     .0008548    .0038646
+           72  |  -.0039738   .0006236    -6.37   0.000    -.0051961   -.0027516
+           74  |    .008936    .000885    10.10   0.000     .0072014    .0106707
+           75  |  -.0020171   .0005454    -3.70   0.000    -.0030861   -.0009481
+           77  |  -.0005096     .00045    -1.13   0.257    -.0013915    .0003724
+           79  |   .0013106   .0006735     1.95   0.052    -9.41e-06    .0026306
+           80  |   .0050058    .000518     9.66   0.000     .0039905    .0060212
+           82  |  -.0007604   .0004299    -1.77   0.077    -.0016031    .0000823
+           83  |  -.0003056   .0005949    -0.51   0.607    -.0014716    .0008604
+           84  |  -.0054907   .0010477    -5.24   0.000    -.0075442   -.0034371
+           86  |   .0029373   .0006265     4.69   0.000     .0017094    .0041652
+           87  |   .0007742   .0004486     1.73   0.084    -.0001051    .0016535
+           89  |   .0017301   .0004013     4.31   0.000     .0009436    .0025167
+           91  |  -.0059823    .000569   -10.51   0.000    -.0070975    -.004867
+           92  |  -.0026429   .0003663    -7.22   0.000    -.0033608    -.001925
+           93  |   .0025534   .0004346     5.88   0.000     .0017016    .0034053
+           94  |  -.0064771   .0004751   -13.63   0.000    -.0074084   -.0055458
+           95  |  -.0044145   .0013001    -3.40   0.001    -.0069627   -.0018663
+           96  |  -.0011166    .000448    -2.49   0.013    -.0019947   -.0002385
+               |
+         _cons |  -.0338379   .0056988    -5.94   0.000    -.0450077   -.0226681
+--------------------------------------------------------------------------------
+F test of excluded instruments:
+  F(  4,    62) =    90.66
+  Prob > F      =   0.0000
+Sanderson-Windmeijer multivariate F test of excluded instruments:
+  F(  1,    62) =   418.55
+  Prob > F      =   0.0000
+
+
+First-stage regression of ins_vuot:
+
+Statistics robust to heteroskedasticity and clustering on tinh
+Number of obs =                  46995
+Number of clusters (tinh) =         63
+--------------------------------------------------------------------------------
+               |               Robust
+      ins_vuot | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+    IV_COMMUNE |   .0001567   .0013872     0.11   0.910    -.0025623    .0028757
+      iv_rural |  -.0002637   .0011704    -0.23   0.822    -.0025576    .0020303
+       iv_vuot |   .1369619   .0404831     3.38   0.001     .0576144    .2163094
+ iv_rural_vuot |   .0527141   .0340427     1.55   0.122      -.01401    .1194383
+         RURAL |  -.0005801   .0012212    -0.48   0.635    -.0029736    .0018134
+ hh_vuot_tuyen |   .8628133   .0392595    21.98   0.000     .7858641    .9397625
+rural_vuot_exo |   -.051064   .0325975    -1.57   0.117    -.1149556    .0128277
+        ln_INC |  -.0003054   .0004257    -0.72   0.473    -.0011399     .000529
+      AGE_HEAD |   .0001007   .0000318     3.17   0.002     .0000384    .0001631
+      SEX_HEAD |   .0006636   .0006116     1.08   0.278    -.0005352    .0018624
+       HH_SIZE |   .0017249   .0003005     5.74   0.000     .0011359     .002314
+               |
+          tinh |
+            2  |   .0006992   .0005491     1.27   0.203    -.0003771    .0017755
+            4  |   .0012317   .0003736     3.30   0.001     .0004993    .0019641
+            6  |   .0016848    .000395     4.26   0.000     .0009105    .0024591
+            8  |   .0038206   .0002646    14.44   0.000     .0033019    .0043393
+           10  |   .0026432   .0002864     9.23   0.000     .0020819    .0032045
+           11  |   .0007437   .0005554     1.34   0.181    -.0003449    .0018323
+           12  |  -.0008305   .0004213    -1.97   0.049    -.0016563   -4.76e-06
+           14  |  -.0013637   .0003865    -3.53   0.000    -.0021214   -.0006061
+           15  |  -.0007456   .0004178    -1.78   0.074    -.0015644    .0000733
+           17  |   .0016047   .0002468     6.50   0.000      .001121    .0020883
+           19  |   .0015284   .0003656     4.18   0.000     .0008119    .0022449
+           20  |   .0020651   .0003859     5.35   0.000     .0013087    .0028215
+           22  |   .0020669   .0002982     6.93   0.000     .0014824    .0026515
+           24  |  -.0006583   .0003628    -1.81   0.070    -.0013694    .0000528
+           25  |   .0047043   .0004185    11.24   0.000     .0038841    .0055246
+           26  |    .001046   .0002785     3.76   0.000     .0005002    .0015919
+           27  |   .0020821   .0004038     5.16   0.000     .0012906    .0028735
+           30  |   .0025456   .0001662    15.31   0.000     .0022198    .0028714
+           31  |   .0009253   .0002871     3.22   0.001     .0003626     .001488
+           33  |   .0048563   .0002909    16.69   0.000     .0042861    .0054265
+           34  |   .0023765   .0003486     6.82   0.000     .0016931    .0030598
+           35  |   .0023548   .0003187     7.39   0.000       .00173    .0029795
+           36  |   .0036477   .0002443    14.93   0.000     .0031689    .0041265
+           37  |   .0005196   .0004642     1.12   0.263    -.0003902    .0014295
+           38  |   .0008874   .0002633     3.37   0.001     .0003714    .0014034
+           40  |   .0023265   .0002784     8.36   0.000     .0017809    .0028722
+           42  |  -.0004093   .0002935    -1.39   0.163    -.0009845    .0001659
+           44  |   .0026964   .0003192     8.45   0.000     .0020708    .0033221
+           45  |   .0023043   .0004318     5.34   0.000     .0014581    .0031506
+           46  |   -.000589   .0005842    -1.01   0.313    -.0017341    .0005561
+           48  |   .0009077    .000542     1.67   0.094    -.0001547    .0019701
+           49  |   .0002877   .0002732     1.05   0.292    -.0002477    .0008231
+           51  |   -.001423   .0003235    -4.40   0.000     -.002057    -.000789
+           52  |    -.00063   .0002328    -2.71   0.007    -.0010862   -.0001738
+           54  |   .0005214   .0002883     1.81   0.070    -.0000436    .0010864
+           56  |   .0026904   .0002512    10.71   0.000      .002198    .0031828
+           58  |   .0052564   .0004287    12.26   0.000     .0044161    .0060966
+           60  |   .0075155   .0010687     7.03   0.000     .0054209    .0096102
+           62  |   .0014909   .0004525     3.29   0.001      .000604    .0023778
+           64  |     .00269    .000354     7.60   0.000     .0019961    .0033839
+           66  |   .0017462   .0006521     2.68   0.007      .000468    .0030244
+           67  |   .0009192   .0008621     1.07   0.286    -.0007706    .0026089
+           68  |    .002451    .000158    15.52   0.000     .0021414    .0027607
+           70  |   .0067242    .000942     7.14   0.000     .0048778    .0085705
+           72  |   .0004958   .0006669     0.74   0.457    -.0008114     .001803
+           74  |   .0031888   .0014023     2.27   0.023     .0004403    .0059372
+           75  |   .0036661   .0006267     5.85   0.000     .0024377    .0048944
+           77  |   .0041272   .0007064     5.84   0.000     .0027427    .0055117
+           79  |   .0028806   .0007608     3.79   0.000     .0013895    .0043717
+           80  |    .001573   .0005108     3.08   0.002     .0005717    .0025742
+           82  |   .0015407   .0004711     3.27   0.001     .0006173     .002464
+           83  |   .0050023   .0004508    11.10   0.000     .0041188    .0058859
+           84  |   .0022096   .0009988     2.21   0.027     .0002519    .0041673
+           86  |   .0074704   .0007442    10.04   0.000     .0060118    .0089291
+           87  |  -.0010516   .0002696    -3.90   0.000    -.0015801   -.0005231
+           89  |   .0034784   .0004778     7.28   0.000      .002542    .0044148
+           91  |  -.0169908   .0008607   -19.74   0.000    -.0186779   -.0153038
+           92  |  -.0161941   .0007856   -20.61   0.000    -.0177338   -.0146543
+           93  |  -.0057501   .0004751   -12.10   0.000    -.0066813   -.0048189
+           94  |   .0021381    .000614     3.48   0.000     .0009348    .0033415
+           95  |  -.0073092   .0016646    -4.39   0.000    -.0105718   -.0040466
+           96  |   .0051457   .0004383    11.74   0.000     .0042866    .0060048
+               |
+         _cons |   -.011466   .0026941    -4.26   0.000    -.0167465   -.0061855
+--------------------------------------------------------------------------------
+F test of excluded instruments:
+  F(  4,    62) =     9.72
+  Prob > F      =   0.0000
+Sanderson-Windmeijer multivariate F test of excluded instruments:
+  F(  1,    62) =   172.15
+  Prob > F      =   0.0000
+
+
+First-stage regression of ins_rural_vuot:
+
+Statistics robust to heteroskedasticity and clustering on tinh
+Number of obs =                  46995
+Number of clusters (tinh) =         63
+--------------------------------------------------------------------------------
+               |               Robust
+ins_rural_vuot | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+    IV_COMMUNE |   .0003996   .0009045     0.44   0.659    -.0013733    .0021725
+      iv_rural |    -.00017   .0008183    -0.21   0.835    -.0017738    .0014339
+       iv_vuot |  -.0007624   .0011753    -0.65   0.517     -.003066    .0015412
+ iv_rural_vuot |   .1914009   .0316286     6.05   0.000     .1294084    .2533935
+         RURAL |  -.0003459   .0008745    -0.40   0.692    -.0020599     .001368
+ hh_vuot_tuyen |   .0003212   .0010411     0.31   0.758    -.0017192    .0023617
+rural_vuot_exo |   .8107526   .0303742    26.69   0.000     .7512187    .8702865
+        ln_INC |  -.0002598    .000347    -0.75   0.454    -.0009399    .0004202
+      AGE_HEAD |   .0000371   .0000199     1.86   0.062    -1.93e-06    .0000761
+      SEX_HEAD |   .0006384   .0005103     1.25   0.211    -.0003618    .0016387
+       HH_SIZE |   .0009723   .0001886     5.15   0.000     .0006025     .001342
+               |
+          tinh |
+            2  |  -.0006435   .0004691    -1.37   0.170    -.0015629    .0002758
+            4  |  -.0007121   .0003498    -2.04   0.042    -.0013976   -.0000265
+            6  |   -.000601   .0003441    -1.75   0.081    -.0012754    .0000734
+            8  |   .0023462   .0002169    10.82   0.000     .0019212    .0027713
+           10  |   .0010475   .0002327     4.50   0.000     .0005914    .0015036
+           11  |  -.0000226   .0003902    -0.06   0.954    -.0007873    .0007421
+           12  |    .001544   .0003368     4.58   0.000     .0008839    .0022041
+           14  |  -.0023067   .0002955    -7.81   0.000    -.0028858   -.0017275
+           15  |  -.0004623   .0004498    -1.03   0.304    -.0013439    .0004193
+           17  |   .0000649   .0001829     0.35   0.723    -.0002936    .0004234
+           19  |   .0002814   .0002486     1.13   0.258    -.0002059    .0007687
+           20  |   .0010043   .0002548     3.94   0.000     .0005049    .0015038
+           22  |   .0004174   .0001754     2.38   0.017     .0000736    .0007613
+           24  |  -.0014586   .0002348    -6.21   0.000    -.0019188   -.0009984
+           25  |   .0034532   .0004319     8.00   0.000     .0026067    .0042996
+           26  |   .0010542   .0002334     4.52   0.000     .0005968    .0015117
+           27  |     .00013   .0001973     0.66   0.510    -.0002568    .0005168
+           30  |   .0012045   .0001317     9.15   0.000     .0009465    .0014626
+           31  |  -.0005576   .0001634    -3.41   0.001    -.0008779   -.0002372
+           33  |   .0033015   .0002248    14.68   0.000     .0028608    .0037422
+           34  |   .0010446   .0002876     3.63   0.000     .0004809    .0016084
+           35  |   .0012588   .0002162     5.82   0.000     .0008351    .0016825
+           36  |   .0021771   .0001894    11.50   0.000     .0018059    .0025482
+           37  |  -.0004759   .0003802    -1.25   0.211    -.0012211    .0002694
+           38  |  -.0002701   .0001706    -1.58   0.113    -.0006045    .0000643
+           40  |   .0010711   .0002314     4.63   0.000     .0006176    .0015247
+           42  |  -.0018289   .0002758    -6.63   0.000    -.0023696   -.0012882
+           44  |   .0014329   .0002458     5.83   0.000     .0009511    .0019147
+           45  |   .0010547   .0003397     3.11   0.002      .000389    .0017204
+           46  |  -.0014069   .0003734    -3.77   0.000    -.0021386   -.0006751
+           48  |    .000277   .0001726     1.61   0.108    -.0000613    .0006152
+           49  |  -.0010887   .0002623    -4.15   0.000    -.0016028   -.0005745
+           51  |   -.001544   .0003184    -4.85   0.000    -.0021681   -.0009198
+           52  |  -.0010027   .0002057    -4.87   0.000    -.0014058   -.0005995
+           54  |   .0021212   .0002412     8.79   0.000     .0016483     .002594
+           56  |   .0012422   .0001993     6.23   0.000     .0008514    .0016329
+           58  |   .0021377   .0002182     9.80   0.000     .0017101    .0025652
+           60  |   .0031112   .0004423     7.03   0.000     .0022442    .0039782
+           62  |   .0009397   .0003375     2.78   0.005     .0002782    .0016011
+           64  |   .0006604   .0002531     2.61   0.009     .0001644    .0011565
+           66  |  -.0006548   .0005269    -1.24   0.214    -.0016876     .000378
+           67  |  -.0004965   .0008809    -0.56   0.573     -.002223      .00123
+           68  |   .0005294   .0001094     4.84   0.000      .000315    .0007437
+           70  |   .0050722   .0005183     9.79   0.000     .0040563    .0060881
+           72  |  -.0014517   .0005996    -2.42   0.015     -.002627   -.0002764
+           74  |   .0017826   .0002452     7.27   0.000     .0013021    .0022632
+           75  |    .000846   .0003542     2.39   0.017     .0001518    .0015402
+           77  |   .0010081   .0001497     6.73   0.000     .0007146    .0013016
+           79  |   .0015388   .0002068     7.44   0.000     .0011336    .0019441
+           80  |  -.0000155   .0004943    -0.03   0.975    -.0009843    .0009533
+           82  |    .001722   .0003323     5.18   0.000     .0010708    .0023732
+           83  |   .0035692   .0004246     8.41   0.000     .0027369    .0044015
+           84  |   .0002927   .0009048     0.32   0.746    -.0014807    .0020661
+           86  |   .0063903   .0005984    10.68   0.000     .0052175    .0075632
+           87  |  -.0018194   .0001969    -9.24   0.000    -.0022054   -.0014334
+           89  |   .0005693    .000191     2.98   0.003     .0001951    .0009436
+           91  |  -.0100354   .0005807   -17.28   0.000    -.0111735   -.0088972
+           92  |  -.0052484   .0001455   -36.07   0.000    -.0055336   -.0049632
+           93  |  -.0042044   .0004052   -10.38   0.000    -.0049986   -.0034102
+           94  |  -.0005126   .0004466    -1.15   0.251    -.0013879    .0003627
+           95  |  -.0055538   .0012572    -4.42   0.000     -.008018   -.0030896
+           96  |   .0044566    .000355    12.55   0.000     .0037608    .0051524
+               |
+         _cons |  -.0051287   .0022329    -2.30   0.022    -.0095052   -.0007522
+--------------------------------------------------------------------------------
+F test of excluded instruments:
+  F(  4,    62) =    15.64
+  Prob > F      =   0.0000
+Sanderson-Windmeijer multivariate F test of excluded instruments:
+  F(  1,    62) =   534.43
+  Prob > F      =   0.0000
+
+
+
+Summary results for first-stage regressions
+-------------------------------------------
+
+                                           (Underid)            (Weak id)
+Variable     | F(  4,    62)  P-val | SW Chi-sq(  1) P-val | SW F(  1,    62)
+INS_DUMMY    |      96.68    0.0000 |       98.36   0.0000 |       96.65
+ins_rural    |      90.66    0.0000 |      425.96   0.0000 |      418.55
+ins_vuot     |       9.72    0.0000 |      175.20   0.0000 |      172.15
+ins_rural_vu |      15.64    0.0000 |      543.89   0.0000 |      534.43
+
+NB: first-stage test statistics cluster-robust
+
+Stock-Yogo weak ID F test critical values for single endogenous regressor:
+                                    5% maximal IV relative bias    16.85
+                                   10% maximal IV relative bias    10.27
+                                   20% maximal IV relative bias     6.71
+                                   30% maximal IV relative bias     5.34
+                                   10% maximal IV size             24.58
+                                   15% maximal IV size             13.96
+                                   20% maximal IV size             10.26
+                                   25% maximal IV size              8.31
+Source: Stock-Yogo (2005).  Reproduced by permission.
+NB: Critical values are for i.i.d. errors only.
+
+Underidentification test
+Ho: matrix of reduced form coefficients has rank=K1-1 (underidentified)
+Ha: matrix has rank=K1 (identified)
+Kleibergen-Paap rk LM statistic          Chi-sq(1)=7.66     P-val=0.0057
+
+Weak identification test
+Ho: equation is weakly identified
+Cragg-Donald Wald F statistic                                     192.48
+Kleibergen-Paap Wald rk F statistic                                 2.77
+
+Stock-Yogo weak ID test critical values for K1=4 and L1=4:
+                                                               <not available>
+
+Weak-instrument-robust inference
+Tests of joint significance of endogenous regressors B1 in main equation
+Ho: B1=0 and orthogonality conditions are valid
+Anderson-Rubin Wald test           F(4,62)=        8.40     P-val=0.0000
+Anderson-Rubin Wald test           Chi-sq(4)=     34.18     P-val=0.0000
+Stock-Wright LM S statistic        Chi-sq(4)=         .     P-val=     .
+
+NB: Underidentification, weak identification and weak-identification-robust
+    test statistics cluster-robust
+
+Number of clusters             N_clust  =         63
+Number of observations               N  =      46995
+Number of regressors                 K  =         74
+Number of endogenous regressors      K1 =          4
+Number of instruments                L  =         74
+Number of excluded instruments       L1 =          4
+
+IV (2SLS) estimation
+--------------------
+
+Estimates efficient for homoskedasticity only
+Statistics robust to heteroskedasticity and clustering on tinh
+
+Number of clusters (tinh) =         63                Number of obs =    46995
+                                                      F( 73,    62) =   195.43
+                                                      Prob > F      =   0.0000
+Total (centered) SS     =  34485.27267                Centered R2   =   0.3901
+Total (uncentered) SS   =  125179.1543                Uncentered R2 =   0.8320
+Residual SS             =  21032.28471                Root MSE      =     .669
+
+--------------------------------------------------------------------------------
+               |               Robust
+        ln_OOP | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+     INS_DUMMY |   1.187967   .1915523     6.20   0.000     .8125318    1.563403
+     ins_rural |  -1.147255   .3324329    -3.45   0.001    -1.798812   -.4956988
+      ins_vuot |   2.071073   1.749344     1.18   0.236    -1.357579    5.499725
+ins_rural_vuot |  -3.318236    1.99535    -1.66   0.096    -7.229049    .5925784
+         RURAL |   1.008794   .3111616     3.24   0.001     .3989285     1.61866
+ hh_vuot_tuyen |   -1.25172   1.734198    -0.72   0.470    -4.650685    2.147245
+rural_vuot_exo |   3.388976   1.973598     1.72   0.086    -.4792061    7.257158
+        ln_INC |   .1804598    .013508    13.36   0.000     .1539846    .2069349
+      AGE_HEAD |   .0028656   .0004344     6.60   0.000     .0020142     .003717
+      SEX_HEAD |   .0313916   .0092165     3.41   0.001     .0133276    .0494555
+       HH_SIZE |    .125522   .0053911    23.28   0.000     .1149558    .1360883
+               |
+          tinh |
+            2  |  -.8307563   .0251885   -32.98   0.000    -.8801248   -.7813878
+            4  |  -.6319518   .0187204   -33.76   0.000    -.6686431   -.5952604
+            6  |  -.6146483   .0202007   -30.43   0.000     -.654241   -.5750556
+            8  |  -.3462352   .0158996   -21.78   0.000    -.3773979   -.3150726
+           10  |  -.4911427   .0150479   -32.64   0.000    -.5206361   -.4616493
+           11  |  -.7019703   .0221637   -31.67   0.000    -.7454102   -.6585303
+           12  |  -.7357104   .0209058   -35.19   0.000    -.7766849   -.6947358
+           14  |   -.248365   .0171679   -14.47   0.000    -.2820136   -.2147165
+           15  |  -.0630737   .0109982    -5.73   0.000    -.0846299   -.0415176
+           17  |  -.2678817   .0098303   -27.25   0.000    -.2871487   -.2486146
+           19  |  -.2895467   .0118251   -24.49   0.000    -.3127235   -.2663699
+           20  |  -.5062053    .015385   -32.90   0.000    -.5363594   -.4760513
+           22  |  -.3338879   .0070202   -47.56   0.000    -.3476472   -.3201287
+           24  |  -.2311008   .0131049   -17.63   0.000    -.2567859   -.2054157
+           25  |  -.0624579    .009795    -6.38   0.000    -.0816559     -.04326
+           26  |  -.0978188   .0072091   -13.57   0.000    -.1119484   -.0836891
+           27  |  -.2050752   .0072449   -28.31   0.000    -.2192749   -.1908755
+           30  |  -.0709887   .0094837    -7.49   0.000    -.0895763    -.052401
+           31  |   .1068911   .0050872    21.01   0.000     .0969205    .1168618
+           33  |   .0711328   .0098697     7.21   0.000     .0517884    .0904771
+           34  |  -.2739534   .0107781   -25.42   0.000    -.2950781   -.2528287
+           35  |  -.0979957   .0122965    -7.97   0.000    -.1220965    -.073895
+           36  |  -.0751426   .0112359    -6.69   0.000    -.0971645   -.0531207
+           37  |  -.0740337   .0118861    -6.23   0.000    -.0973301   -.0507373
+           38  |  -.2082607   .0108498   -19.19   0.000    -.2295259   -.1869954
+           40  |  -.2060826   .0148278   -13.90   0.000    -.2351445   -.1770206
+           42  |  -.1312036   .0103107   -12.73   0.000    -.1514121    -.110995
+           44  |   -.170243   .0127456   -13.36   0.000     -.195224   -.1452621
+           45  |  -.2418979   .0138147   -17.51   0.000    -.2689743   -.2148216
+           46  |  -.2109114   .0086709   -24.32   0.000     -.227906   -.1939168
+           48  |  -.1750156   .0112901   -15.50   0.000    -.1971439   -.1528874
+           49  |  -.2251248   .0102994   -21.86   0.000    -.2453112   -.2049383
+           51  |  -.1947818   .0128778   -15.13   0.000    -.2200218   -.1695419
+           52  |  -.1601311   .0077672   -20.62   0.000    -.1753544   -.1449077
+           54  |    -.04744   .0139808    -3.39   0.001    -.0748418   -.0200381
+           56  |  -.1737291   .0109351   -15.89   0.000    -.1951615   -.1522967
+           58  |   -.242295   .0126967   -19.08   0.000    -.2671802   -.2174099
+           60  |  -.2469142   .0064776   -38.12   0.000    -.2596101   -.2342183
+           62  |  -.7286312   .0107279   -67.92   0.000    -.7496576   -.7076049
+           64  |  -.3929093    .015854   -24.78   0.000    -.4239825    -.361836
+           66  |  -.2667102   .0122719   -21.73   0.000    -.2907626   -.2426578
+           67  |  -.2491189    .011425   -21.80   0.000    -.2715116   -.2267262
+           68  |  -.2383069   .0079252   -30.07   0.000      -.25384   -.2227738
+           70  |  -.1731181   .0072492   -23.88   0.000    -.1873263     -.15891
+           72  |  -.0877934   .0065748   -13.35   0.000    -.1006798    -.074907
+           74  |  -.3335037   .0133981   -24.89   0.000    -.3597635   -.3072439
+           75  |  -.2201526   .0037962   -57.99   0.000     -.227593   -.2127121
+           77  |  -.2375846   .0080399   -29.55   0.000    -.2533425   -.2218267
+           79  |  -.4338076   .0142978   -30.34   0.000    -.4618308   -.4057844
+           80  |  -.0876232   .0097384    -9.00   0.000    -.1067102   -.0685363
+           82  |  -.0842057     .00943    -8.93   0.000    -.1026881   -.0657233
+           83  |  -.1934572   .0099484   -19.45   0.000    -.2129557   -.1739587
+           84  |  -.1357314   .0099868   -13.59   0.000    -.1553053   -.1161576
+           86  |  -.1938458   .0131256   -14.77   0.000    -.2195715   -.1681202
+           87  |  -.1905401   .0081744   -23.31   0.000    -.2065617   -.1745186
+           89  |  -.2126341   .0082508   -25.77   0.000    -.2288054   -.1964628
+           91  |  -.2546964     .02106   -12.09   0.000    -.2959732   -.2134195
+           92  |  -.2472936     .02545    -9.72   0.000    -.2971746   -.1974126
+           93  |  -.2291875   .0101928   -22.49   0.000    -.2491651   -.2092099
+           94  |  -.5738019   .0082289   -69.73   0.000    -.5899303   -.5576735
+           95  |  -.3117604   .0161926   -19.25   0.000    -.3434973   -.2800234
+           96  |  -.2220579   .0115708   -19.19   0.000    -.2447363   -.1993796
+               |
+         _cons |  -1.135149   .1896722    -5.98   0.000      -1.5069   -.7633984
+--------------------------------------------------------------------------------
+Underidentification test (Kleibergen-Paap rk LM statistic):              7.657
+                                                   Chi-sq(1) P-val =    0.0057
+------------------------------------------------------------------------------
+Weak identification test (Cragg-Donald Wald F statistic):              192.478
+                         (Kleibergen-Paap rk Wald F statistic):          2.775
+Stock-Yogo weak ID test critical values:                       <not available>
+------------------------------------------------------------------------------
+Warning: estimated covariance matrix of moment conditions not of full rank.
+         overidentification statistic not reported, and standard errors and
+         model tests should be interpreted with caution.
+Possible causes:
+         number of clusters insufficient to calculate robust covariance matrix
+         singleton dummy variable (dummy with one 1 and N-1 0s or vice versa)
+partial option may address problem.
+------------------------------------------------------------------------------
+Instrumented:         INS_DUMMY ins_rural ins_vuot ins_rural_vuot
+Included instruments: RURAL hh_vuot_tuyen rural_vuot_exo ln_INC AGE_HEAD
+                      SEX_HEAD HH_SIZE 2.tinh 4.tinh 6.tinh 8.tinh 10.tinh
+                      11.tinh 12.tinh 14.tinh 15.tinh 17.tinh 19.tinh 20.tinh
+                      22.tinh 24.tinh 25.tinh 26.tinh 27.tinh 30.tinh 31.tinh
+                      33.tinh 34.tinh 35.tinh 36.tinh 37.tinh 38.tinh 40.tinh
+                      42.tinh 44.tinh 45.tinh 46.tinh 48.tinh 49.tinh 51.tinh
+                      52.tinh 54.tinh 56.tinh 58.tinh 60.tinh 62.tinh 64.tinh
+                      66.tinh 67.tinh 68.tinh 70.tinh 72.tinh 74.tinh 75.tinh
+                      77.tinh 79.tinh 80.tinh 82.tinh 83.tinh 84.tinh 86.tinh
+                      87.tinh 89.tinh 91.tinh 92.tinh 93.tinh 94.tinh 95.tinh
+                      96.tinh
+Excluded instruments: IV_COMMUNE iv_rural iv_vuot iv_rural_vuot
+------------------------------------------------------------------------------
+
+. 
+. * Tiêu chuẩn cần check trong bảng kết quả:
+. * - Kleibergen-Paap rk Wald F statistic > 10 (Bác bỏ H0: Biến công cụ yếu).
+. * - Endogeneity test (Durbin-Wu-Hausman) p-value < 0.05 hoặc 0.10 (Bác bỏ H0: Các biến ngoại sinh, xác nhận mô hình IV
+>  là cần thiết).
+. 
+. * ------------------------------------------------------------------------------
+. * 3. KIỂM ĐỊNH MÔ HÌNH PHÂN VỊ (SQREG)
+. * ------------------------------------------------------------------------------
+. display ">>> 3. KIEM DINH TINH PHI TUYEN CUA BHYT TREN CAC PHAN VI (SQREG) <<<"
+>>> 3. KIEM DINH TINH PHI TUYEN CUA BHYT TREN CAC PHAN VI (SQREG) <<<
+
+. * Chạy lại mô hình SQREG (có thể mất vài phút vì bootstrap 100 lần)
+. quietly sqreg ln_OOP INS_DUMMY hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot ln_INC $X i.tinh, ///
+>     quantiles(.25 .50 .75 .90) reps(100)
+convergence not achieved.
+convergence not achieved
+r(430);
+
+end of do-file
+
+r(430);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 3. KIỂM ĐỊNH MÔ HÌNH PHÂN VỊ (SQREG)
+. * ------------------------------------------------------------------------------
+. display ">>> 3. KIEM DINH TINH PHI TUYEN CUA BHYT TREN CAC PHAN VI (SQREG) <<<"
+>>> 3. KIEM DINH TINH PHI TUYEN CUA BHYT TREN CAC PHAN VI (SQREG) <<<
+
+. * Chạy lại mô hình SQREG (có thể mất vài phút vì bootstrap 100 lần)
+. quietly sqreg ln_OOP INS_DUMMY hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot ln_INC $X i.tinh, ///
+>     quantiles(.25 .50 .75 .90) reps(100)
+convergence not achieved.
+convergence not achieved
+r(430);
+
+end of do-file
+
+r(430);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 4. KIỂM ĐỊNH GHÉP CẶP ĐIỂM XU HƯỚNG (PSM)
+. * ------------------------------------------------------------------------------
+. display ">>> 4. KIEM DINH SU CAN BANG VA VUNG HO TRO CHUNG (PSM) <<<"
+>>> 4. KIEM DINH SU CAN BANG VA VUNG HO TRO CHUNG (PSM) <<<
+
+. quietly teffects psmatch (ln_OOP) (INS_DUMMY $X, probit), nn(1) vce(iid)
+there are 83 propensity scores greater than 1 - 1.00e-05
+treatment overlap assumption has been violated; use the osample() option to identify the observations
+r(459);
+
+end of do-file
+
+r(459);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 2. MA TRAN TUONG QUAN (CORRELATION MATRIX)
+. * ------------------------------------------------------------------------------
+. display ">>> MA TRAN TUONG QUAN CHO CAC BIEN CHINH TONG MO HINH <<<"
+>>> MA TRAN TUONG QUAN CHO CAC BIEN CHINH TONG MO HINH <<<
+
+. 
+. * Sử dụng pwcorr để xem hệ số tương quan từng cặp, hiển thị p-value (sig) và đánh dấu sao (*) nếu p < 0.05
+. pwcorr ln_OOP INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot ln_INC AGE_HEAD SEX_HEAD HH_SIZE, sig st
+> ar(0.05)
+
+             |   ln_OOP INS_DU~Y    RURAL hh_vuo~n ins_ru~l ins_vuot ins_ru~t
+-------------+---------------------------------------------------------------
+      ln_OOP |   1.0000 
+             |
+             |
+   INS_DUMMY |   0.1741*  1.0000 
+             |   0.0000
+             |
+       RURAL |  -0.0814*  0.0201*  1.0000 
+             |   0.0000   0.0000
+             |
+hh_vuot_tu~n |   0.5214*  0.0850* -0.0503*  1.0000 
+             |   0.0000   0.0000   0.0000
+             |
+   ins_rural |  -0.0443*  0.2323*  0.9619* -0.0326*  1.0000 
+             |   0.0000   0.0000   0.0000   0.0000
+             |
+    ins_vuot |   0.5212*  0.1297* -0.0505*  0.9920* -0.0223*  1.0000 
+             |   0.0000   0.0000   0.0000   0.0000   0.0000
+             |
+ins_rural_~t |   0.3654*  0.0935*  0.3871*  0.7151*  0.4024*  0.7209*  1.0000 
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000
+             |
+      ln_INC |   0.1717* -0.0271* -0.2468*  0.0050  -0.2437*  0.0037  -0.0971*
+             |   0.0000   0.0000   0.0000   0.2764   0.0000   0.4220   0.0000
+             |
+    AGE_HEAD |   0.0922*  0.0307* -0.0027   0.1535*  0.0023   0.1542*  0.1090*
+             |   0.0000   0.0000   0.5576   0.0000   0.6133   0.0000   0.0000
+             |
+    SEX_HEAD |   0.0499*  0.0173*  0.1174* -0.0201*  0.1169* -0.0184*  0.0431*
+             |   0.0000   0.0002   0.0000   0.0000   0.0000   0.0001   0.0000
+             |
+     HH_SIZE |   0.2424*  0.1375*  0.0366*  0.0539*  0.0636*  0.0587*  0.0538*
+             |   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000
+             |
+
+             |   ln_INC AGE_HEAD SEX_HEAD  HH_SIZE
+-------------+------------------------------------
+      ln_INC |   1.0000 
+             |
+             |
+    AGE_HEAD |  -0.0838*  1.0000 
+             |   0.0000
+             |
+    SEX_HEAD |   0.0150* -0.1567*  1.0000 
+             |   0.0011   0.0000
+             |
+     HH_SIZE |  -0.1398* -0.1744*  0.2179*  1.0000 
+             |   0.0000   0.0000   0.0000
+             |
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * Ma trận tương quan có xét trọng số (sử dụng aweight thay cho pweight)
+. corr ln_OOP INS_DUMMY RURAL hh_vuot_tuyen ins_rural ins_vuot ins_rural_vuot ln_INC AGE_HEAD SEX_HEAD HH_SIZE [aw=wt9]
+(sum of wgt is 143,361,540)
+(obs=46,995)
+
+             |   ln_OOP INS_DU~Y    RURAL hh_vuo~n ins_ru~l ins_vuot ins_ru~t   ln_INC AGE_HEAD SEX_HEAD  HH_SIZE
+-------------+---------------------------------------------------------------------------------------------------
+      ln_OOP |   1.0000
+   INS_DUMMY |   0.1867   1.0000
+       RURAL |  -0.0629   0.0162   1.0000
+hh_vuot_tu~n |   0.5085   0.0917  -0.0781   1.0000
+   ins_rural |  -0.0268   0.2095   0.9658  -0.0602   1.0000
+    ins_vuot |   0.5088   0.1354  -0.0780   0.9921  -0.0513   1.0000
+ins_rural_~t |   0.3467   0.0896   0.4130   0.6561   0.4276   0.6613   1.0000
+      ln_INC |   0.1286  -0.0292  -0.2635   0.0008  -0.2613  -0.0002  -0.1195   1.0000
+    AGE_HEAD |   0.0938   0.0375   0.0283   0.1534   0.0330   0.1546   0.1160  -0.1245   1.0000
+    SEX_HEAD |   0.0586   0.0146   0.1248  -0.0292   0.1238  -0.0275   0.0502   0.0144  -0.1434   1.0000
+     HH_SIZE |   0.2841   0.1410   0.0489   0.0554   0.0736   0.0604   0.0592  -0.1385  -0.1409   0.2135   1.0000
+
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * Chạy lại mô hình IV (lưu ý: tạm thời bỏ [pw] và cluster để chạy được lệnh kiểm định gốc)
+. ivregress 2sls ln_OOP ln_INC AGE_HEAD SEX_HEAD HH_SIZE (INS_DUMMY ins_rural ins_vuot ins_rural_vuot = IV_COMMUNE iv_ru
+> ral iv_vuot iv_rural_vuot)
+
+Instrumental variables 2SLS regression            Number of obs   =     46,995
+                                                  Wald chi2(8)    =   27040.75
+                                                  Prob > chi2     =     0.0000
+                                                  R-squared       =     0.3699
+                                                  Root MSE        =     .67998
+
+--------------------------------------------------------------------------------
+        ln_OOP | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+---------------+----------------------------------------------------------------
+     INS_DUMMY |   .3284897   .0967699     3.39   0.001     .1388241    .5181552
+     ins_rural |  -.0820007   .0090981    -9.01   0.000    -.0998328   -.0641687
+      ins_vuot |    .808713   .0117372    68.90   0.000     .7857085    .8317175
+ins_rural_vuot |   .1095235    .014088     7.77   0.000     .0819116    .1371355
+        ln_INC |   .2300418   .0042915    53.60   0.000     .2216305     .238453
+      AGE_HEAD |   .0049107   .0002485    19.76   0.000     .0044236    .0053978
+      SEX_HEAD |   .0297641   .0072519     4.10   0.000     .0155506    .0439775
+       HH_SIZE |   .1266485   .0024205    52.32   0.000     .1219044    .1313925
+         _cons |  -.8694331    .088505    -9.82   0.000      -1.0429   -.6959665
+--------------------------------------------------------------------------------
+Instrumented: INS_DUMMY ins_rural ins_vuot ins_rural_vuot
+ Instruments: ln_INC AGE_HEAD SEX_HEAD HH_SIZE IV_COMMUNE iv_rural iv_vuot
+              iv_rural_vuot
+
+. * Cài đặt gói ivhettest nếu chưa có
+. ssc install ivhettest, replace
+checking ivhettest consistency and verifying not already installed...
+installing into C:\Users\Admin\ado\plus\...
+installation complete.
+
+. * Thực hiện kiểm định Pagan-Hall cho mô hình IV
+. ivhettest, ph
+IV heteroskedasticity test(s) using levels of IVs only
+Ho: Disturbance is homoskedastic
+    Pagan-Hall general test statistic   : 2982.260  Chi-sq(8) P-value = 0.0000
+
+. * Tính toán hệ số tương quan nội cụm (ICC) theo biến tỉnh
+. loneway ln_OOP tinh
+
+          One-way analysis of variance for ln_OOP: Log(Total OOP + 1)
+
+                                             Number of obs =       46,995
+                                                 R-squared =       0.0706
+
+    Source                SS         df      MS            F     Prob > F
+-------------------------------------------------------------------------
+Between tinh            2434.775     62    39.270564     57.50     0.0000
+Within tinh            32050.498 46,932    .68291353
+-------------------------------------------------------------------------
+Total                  34485.273 46,994    .73382289
+
+         Intraclass       Asy.        
+         correlation      S.E.       [95% conf. interval]
+         ------------------------------------------------
+            0.07055     0.01268       0.04569     0.09541
+
+         Estimated SD of tinh effect             .2276767
+         Estimated SD within tinh                .8263858
+         Est. reliability of a tinh mean          0.98261
+              (evaluated at n=744.41)
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * 1. Biểu đồ Pie thể hiện tỷ lệ BHYT (Tổng quan mẫu)
+. * Sử dụng bảng màu chuyên nghiệp (pcolor) và tách mảng (explode) để tạo điểm nhấn
+. graph pie, over(INS_DUMMY) ///
+>     plabel(_all percent, format(%2.1f) size(small) color(white)) ///
+>     title("Figure 1a: Health Insurance Coverage", size(medium) color(black)) ///
+>     subtitle("Proportion of Households in VHLSS 2024", size(small) color(gs8)) ///
+>     legend(order(1 "Uninsured" 2 "Insured") position(6) rows(1) region(lcolor(white))) ///
+>     pie(1, color(maroon*0.8)) pie(2, color(navy*0.8) explode) ///
+>     graphregion(color(white)) ///
+>     saving("$figpath/Figure1a_Pie_BHYT.gph", replace)
+(file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures/Figure1a_Pie_BHYT.gph not found)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai cuoi 
+> ky\01. Bai viet LAtex\figures/Figure1a_Pie_BHYT.gph saved
+
+. 
+. * Xuất đồ thị ra định dạng PNG chất lượng cao (đúng tên file để tránh ghi đè)
+. graph export "$figpath/Figure1a_Pie_BHYT.png", as(png) replace width(3000)
+(file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures/Figure1a_Pie_BHYT.png not found)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures/Figure1a_Pie_BHYT.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * 4. Vẽ Kernel Density: So sánh phân phối chi phí giữa nhóm có và không có BHYT
+. * Biểu đồ này giúp minh chứng cho việc tại sao cần dùng hồi quy phân vị (SQREG)
+. twoway (kdensity ln_OOP if INS_DUMMY == 1, lcolor(navy) lwidth(medium) lpattern(solid)) ///
+>        (kdensity ln_OOP if INS_DUMMY == 0, lcolor(maroon) lwidth(medium) lpattern(dash)), ///
+>     title("Figure 2: Distribution of Log(OOP) by Insurance Status", size(medium)) ///
+>     subtitle("Kernel Density Estimates", size(small) color(gs8)) ///
+>     xtitle("Logarithm of OOP Expenditure") ytitle("Density") ///
+>     legend(order(1 "Insured" 2 "Uninsured") position(6) rows(1) region(lcolor(white))) ///
+>     scheme(s1mono)
+
+. graph export "$figpath\Figure2_KernelDensity_INS.png", as(png) replace width(2000)
+(file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure2_KernelDensity_INS.png not found)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\Figure2_KernelDensity_INS.png saved as PNG format
+
+. 
+. * 5. Vẽ Coefficient Plot (Mẫu cho kết quả hồi quy sau khi bạn chạy mô hình IV-2SLS)
+. * Lưu ý: Đoạn này nên chạy sau khi bạn đã lưu kết quả hồi quy (estimates store)
+. * Giả sử bạn đã chạy mô hình và lưu tên là 'iv_model'
+. * ssc install coefplot // Nếu máy bạn chưa có lệnh này
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * 5. Vẽ Coefficient Plot (Mẫu cho kết quả hồi quy sau khi bạn chạy mô hình IV-2SLS)
+. * Lưu ý: Đoạn này nên chạy sau khi bạn đã lưu kết quả hồi quy (estimates store)
+. * Giả sử bạn đã chạy mô hình và lưu tên là 'iv_model'
+. * ssc install coefplot // Nếu máy bạn chưa có lệnh này
+. 
+. coefplot iv_model, keep(1.INS_DUMMY 1.INS_DUMMY#1.RURAL 1.INS_DUMMY#1.RURAL#1.hh_vuot_tuyen) ///
+>     xline(0, lcolor(gs10) lpattern(shortdash)) ///
+>     title("Figure 3: Marginal Effects of Health Insurance", size(medium)) ///
+>     subtitle("Estimated Coefficients with 95% Confidence Intervals", size(small) color(gs8)) ///
+>     coeflabels(1.INS_DUMMY = "Main Effect (INS)" ///
+>                1.INS_DUMMY#1.RURAL = "Interaction (INS x Rural)" ///
+>                1.INS_DUMMY#1.RURAL#1.hh_vuot_tuyen = "Triple Interaction (INS x Rural x Bypass)") ///
+>     scheme(s1mono) marker(msymbol(D) mcolor(navy)) lcolor(navy)
+estimation result iv_model not found
+r(111);
+
+end of do-file
+
+r(111);
+
+. * Thiết lập đường dẫn lưu ảnh (nếu chưa thiết lập)
+
+. 
+. * global figpath "đường/dẫn/của/bạn"
+
+. 
+. 
+. 
+. * Vẽ biểu đồ mật độ Kernel cho ln_OOP phân theo trạng thái BHYT
+
+. 
+. twoway (kdensity ln_OOP if INS_DUMMY == 1, lcolor(navy) lwidth(medium) lpattern(solid)) ///
+/ / / is not a twoway plot type
+r(198);
+
+. 
+.        (kdensity ln_OOP if INS_DUMMY == 0, lcolor(maroon) lwidth(medium) lpattern(dash)), ///
+( is not a valid command name
+r(199);
+
+. 
+.     title("Figure 2: Kernel Density of Log(OOP) by Insurance Status", size(medium) color(black)) ///
+command title is unrecognized
+r(199);
+
+. 
+.     subtitle("Comparison of distribution and central tendency", size(small) color(gs8)) ///
+command subtitle is unrecognized
+r(199);
+
+. 
+.     xtitle("Logarithm of Out-of-Pocket Expenditure (ln_OOP)") ///
+command xtitle is unrecognized
+r(199);
+
+. 
+.     ytitle("Density") ///
+command ytitle is unrecognized
+r(199);
+
+. 
+.     legend(order(1 "Insured (Solid line)" 2 "Uninsured (Dashed line)") ///
+command legend is unrecognized
+r(199);
+
+. 
+.            position(6) rows(1) region(lcolor(white))) ///
+command position is unrecognized
+r(199);
+
+. 
+.     graphregion(color(white)) ///
+command graphregion is unrecognized
+r(199);
+
+. 
+.     scheme(s1mono)
+scheme is a class
+r(4002);
+
+. 
+. 
+. 
+. * Xuất đồ thị sang định dạng PNG chất lượng cao
+
+. 
+. graph export "$figpath/Figure2_Kernel_Density.png", as(png) replace width(3000)
+could not find Graph window
+r(693);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD4868_000000.tmp"
+
+. * Vẽ biểu đồ mật độ Kernel cho ln_OOP phân theo trạng thái BHYT
+. twoway (kdensity ln_OOP if INS_DUMMY == 1, lcolor(navy) lwidth(medium) lpattern(solid)) ///
+>        (kdensity ln_OOP if INS_DUMMY == 0, lcolor(maroon) lwidth(medium) lpattern(dash)), ///
+>     title("Figure 2: Kernel Density of Log(OOP) by Insurance Status", size(medium) color(black)) ///
+>     subtitle("Comparison of distribution and central tendency", size(small) color(gs8)) ///
+>     xtitle("Logarithm of Out-of-Pocket Expenditure (ln_OOP)") ///
+>     ytitle("Density") ///
+>     legend(order(1 "Insured (Solid line)" 2 "Uninsured (Dashed line)") ///
+>            position(6) rows(1) region(lcolor(white))) ///
+>     graphregion(color(white)) ///
+>     scheme(s1mono)
+
+. 
+. * Xuất đồ thị sang định dạng PNG chất lượng cao
+. graph export "$figpath/Figure2_Kernel_Density.png", as(png) replace width(3000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures/Figure2_Kernel_Density.png saved as PNG format
+
+. 
+end of do-file
+
+. save "VHLSS24_Master_Analysis.dta", replace
+file VHLSS24_Master_Analysis.dta saved
+
+. exit

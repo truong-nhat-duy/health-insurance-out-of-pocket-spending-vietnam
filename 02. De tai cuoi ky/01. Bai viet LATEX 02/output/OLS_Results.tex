@@ -1,0 +1,36 @@
+{
+\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+\begin{tabular}{l*{2}{c}}
+\hline\hline
+                    &\multicolumn{1}{c}{(1)}&\multicolumn{1}{c}{(2)}\\
+                    &\multicolumn{1}{c}{OOP Expenditure (Million VND)}&\multicolumn{1}{c}{Log(OOP Expenditure + 1)}\\
+\hline
+Health Insurance Coverage&       2.965\sym{***}&       0.729\sym{***}\\
+                    &     (0.295)         &     (0.043)         \\
+[1em]
+Rural Area          &       0.019         &      -0.007         \\
+                    &     (0.326)         &     (0.049)         \\
+[1em]
+Health Insurance Coverage $\times$ Rural Area&      -0.516\sym{*}  &      -0.068         \\
+                    &     (0.301)         &     (0.048)         \\
+[1em]
+Log(Income per capita)&       1.678\sym{***}&       0.165\sym{***}\\
+                    &     (0.135)         &     (0.017)         \\
+[1em]
+Age of Household Head&       0.083\sym{***}&       0.008\sym{***}\\
+                    &     (0.009)         &     (0.000)         \\
+[1em]
+Male Household Head &      -0.026         &      -0.031\sym{***}\\
+                    &     (0.181)         &     (0.011)         \\
+[1em]
+Household Size      &       1.072\sym{***}&       0.157\sym{***}\\
+                    &     (0.082)         &     (0.008)         \\
+[1em]
+Province FE         &         Yes         &         Yes         \\
+\hline
+Observations        &       46995         &       46995         \\
+\hline\hline
+\multicolumn{3}{l}{\footnotesize Robust standard errors clustered at the province level in parentheses.}\\
+\multicolumn{3}{l}{\footnotesize \sym{*} \(p<0.10\), \sym{**} \(p<0.05\), \sym{***} \(p<0.01\)}\\
+\end{tabular}
+}

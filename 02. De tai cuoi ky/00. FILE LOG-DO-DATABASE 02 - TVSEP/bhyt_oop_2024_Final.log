@@ -1,0 +1,471 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De t
+> ai cuoi ky\00. FILE LOG-DO-DATABASE 02 - TVSEP\bhyt_oop_2024_Final.log
+  log type:  text
+ opened on:   6 Mar 2026, 17:43:50
+
+. 
+. * Đặt thư mục làm việc (Hãy sửa lại đường dẫn này theo máy của bạn)
+. local dir `c(pwd)'
+
+. cd "`dir'"
+D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai cuoi ky\00
+> . FILE LOG-DO-DATABASE 02 - TVSEP
+
+. use "TVSEP_Panel_Clean_CPI_Labelled_Final.dta", clear
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * -------------------------------
+. * Ghép hai đồ thị thành Event-Study chung
+. * -------------------------------
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("Tác động BHYT - Việt Nam") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") ///
+>     xtitle("Năm khảo sát (Wave)")
+previous command was not margins
+r(301);
+
+end of do-file
+
+r(301);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * Tính toán Tác động Biên (Marginal Effects) của BHYT cho từng nước qua các năm
+. * -------------------------------
+. * Việt Nam (THAI_dummy==0)
+. * -------------------------------
+. preserve
+
+. keep if THAI_dummy==0
+(15,958 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+last estimates not found
+r(301);
+
+end of do-file
+
+r(301);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 4: PHÂN TÍCH ĐỘNG (DYNAMIC ANALYSIS) - SỰ THAY ĐỔI THEO THỜI GIAN
+. * ------------------------------------------------------------------------------
+. display ">>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<"
+>>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<
+
+. 
+. * Chạy mô hình Fixed Effects với tương tác 3 chiều (Wave x INS x Country)
+. reghdfe ln_OOP_real i.INS_dummy##i.THAI_dummy##i.wave $X, ///
+>     absorb(id_panel) vce(cluster village)
+(dropped 6579 singleton observations)
+(MWFE estimator converged in 1 iterations)
+note: 1bn.THAI_dummy is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.
+> 0e-09)
+
+HDFE Linear regression                            Number of obs   =     25,185
+Absorbing 1 HDFE group                            F(  26,    520) =    6746.59
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8710
+                                                  Adj R-squared   =     0.8445
+                                                  Within R-sq.    =     0.8503
+Number of clusters (village) =        521         Root MSE        =     0.6545
+
+                                           (Std. err. adjusted for 521 clusters in village)
+-------------------------------------------------------------------------------------------
+                          |               Robust
+              ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+              1.INS_dummy |   .7395979   .2265431     3.26   0.001     .2945457     1.18465
+             1.THAI_dummy |          0  (omitted)
+                          |
+     INS_dummy#THAI_dummy |
+                     1 1  |  -.8336939   .2688933    -3.10   0.002    -1.361945   -.3054432
+                          |
+                     wave |
+                    2008  |  -1.492736   .0250004   -59.71   0.000     -1.54185   -1.443621
+                    2010  |    .043343   .0349425     1.24   0.215    -.0253027    .1119887
+                    2011  |   -.332596   .0487586    -6.82   0.000    -.4283841   -.2368079
+                    2013  |  -3.334068   .0545423   -61.13   0.000    -3.441219   -3.226918
+                    2016  |    .415801   .0273006    15.23   0.000     .3621679    .4694341
+                    2017  |   .4402787   .0292702    15.04   0.000     .3827763    .4977812
+                          |
+           INS_dummy#wave |
+                  1 2008  |  -.6928908   .2520219    -2.75   0.006    -1.187997   -.1977845
+                  1 2010  |  -.6449625   .2292878    -2.81   0.005    -1.095407   -.1945183
+                  1 2011  |  -.4755949   .2493421    -1.91   0.057    -.9654365    .0142467
+                  1 2013  |  -.6425504   .2613828    -2.46   0.014    -1.156046   -.1290544
+                  1 2016  |  -.3598246   .2623826    -1.37   0.171    -.8752847    .1556355
+                  1 2017  |  -.2142574   .2613536    -0.82   0.413    -.7276961    .2991812
+                          |
+          THAI_dummy#wave |
+                  1 2008  |  -1.389067   .0311054   -44.66   0.000    -1.450175   -1.327959
+                  1 2010  |   .0280242   .0393375     0.71   0.477    -.0492558    .1053042
+                  1 2011  |   .5523593   .0565213     9.77   0.000     .4413211    .6633975
+                  1 2013  |   .5832628   .0584539     9.98   0.000     .4684281    .6980976
+                  1 2016  |   .4284036    .035047    12.22   0.000     .3595525    .4972547
+                  1 2017  |   .4448308   .0358536    12.41   0.000      .374395    .5152666
+                          |
+INS_dummy#THAI_dummy#wave |
+                1 1 2008  |   1.462033   .3022796     4.84   0.000     .8681933    2.055872
+                1 1 2010  |   1.023483   .2736619     3.74   0.000     .4858647    1.561102
+                1 1 2011  |   .6533756   .3172259     2.06   0.040     .0301738    1.276577
+                1 1 2013  |   .8901996   .3037385     2.93   0.004     .2934943    1.486905
+                1 1 2016  |   .9282118   .3153143     2.94   0.003     .3087654    1.547658
+                1 1 2017  |   .8969603   .3166513     2.83   0.005     .2748872    1.519033
+                          |
+                    _cons |   7.416525   .0114726   646.45   0.000     7.393987    7.439064
+-------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4269           0        4269     |
+-----------------------------------------------------+
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * Tính toán Tác động Biên (Marginal Effects) của BHYT cho từng nước qua các năm
+. * -------------------------------
+. * Việt Nam (THAI_dummy==0)
+. * -------------------------------
+. preserve
+
+. keep if THAI_dummy==0
+(15,958 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 12,497
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |   .0467071   .1356787     0.34   0.731    -.2192183    .3126325
+          2  |   .0946354   .0659538     1.43   0.151    -.0346317    .2239025
+          3  |    .264003   .1088441     2.43   0.015     .0506724    .4773335
+          4  |   .0970475   .1338517     0.73   0.468    -.1652971    .3593921
+          5  |   .3797733   .1370939     2.77   0.006     .1110742    .6484723
+          6  |   .5253405   .1313484     4.00   0.000     .2679023    .7827787
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("Tác động BHYT - Việt Nam")
+
+Variables that uniquely identify margins: wave
+
+. rest
+command rest is unrecognized
+r(199);
+
+end of do-file
+
+r(199);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * -------------------------------
+. * Thái Lan (THAI_dummy==1)
+. * -------------------------------
+. preserve
+
+. keep if THAI_dummy==1
+(15,821 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 12,688
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |   .6750458   .0843272     8.01   0.000     .5097676     .840324
+          2  |    .284425   .0658543     4.32   0.000     .1553528    .4134971
+          3  |   .0836847   .1279528     0.65   0.513    -.1670982    .3344675
+          4  |   .1535532    .043253     3.55   0.000      .068779    .2383275
+          5  |   .4742912   .0864411     5.49   0.000     .3048697    .6437126
+          6  |   .5886069   .0966524     6.09   0.000     .3991717    .7780421
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(navy) mcolor(navy) msymbol(D)) ///
+>     ciopts(fcolor(navy%20) lcolor(none)) ///
+>     name(th_plot, replace) ///
+>     title("Tác động BHYT - Thái Lan")
+
+Variables that uniquely identify margins: wave
+
+. restore
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * -------------------------------
+. * Ghép hai đồ thị thành Event-Study chung
+. * -------------------------------
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("Tác động BHYT - Việt Nam") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") ///
+>     xtitle("Năm khảo sát (Wave)")
+
+Variables that uniquely identify margins: wave
+
+. 
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(navy) mcolor(navy) msymbol(D)) ///
+>     ciopts(fcolor(navy%20) lcolor(none)) ///
+>     name(th_plot, replace) ///
+>     title("Tác động BHYT - Thái Lan") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") ///
+>     xtitle("Năm khảo sát (Wave)")
+
+Variables that uniquely identify margins: wave
+
+. 
+. graph combine vn_plot th_plot, ///
+>     title("Tác động của BHYT lên Chi phí Y tế qua thời gian (Dynamic Effects)") ///
+>     name(g_dynamic_effect, replace)
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. graph combine vn_plot th_plot, ///
+>     title("Impact of Health Insurance on Out-of-Pocket Health Expenditure over Time (Dynamic Effects)") ///
+>     name(g_dynamic_effect, replace)
+
+. graph export "${figdir}\dynamic_effects_combined.png", replace as(png) width(2000)
+(file \dynamic_effects_combined.png not found)
+file \dynamic_effects_combined.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * -------------------------------
+. * Ghép hai đồ thị thành Event-Study chung
+. * -------------------------------
+. * Vietnam
+. preserve
+
+. keep if THAI_dummy==0
+(15,958 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 12,497
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |   .0467071   .1356787     0.34   0.731    -.2192183    .3126325
+          2  |   .0946354   .0659538     1.43   0.151    -.0346317    .2239025
+          3  |    .264003   .1088441     2.43   0.015     .0506724    .4773335
+          4  |   .0970475   .1338517     0.73   0.468    -.1652971    .3593921
+          5  |   .3797733   .1370939     2.77   0.006     .1110742    .6484723
+          6  |   .5253405   .1313484     4.00   0.000     .2679023    .7827787
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("VN") ///
+>     ytitle("Marginal Effect") ///
+>     xtitle("Wave")
+
+Variables that uniquely identify margins: wave
+
+. restore
+
+. 
+. * Thailand
+. preserve
+
+. keep if THAI_dummy==1
+(15,821 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 12,688
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |   .6750458   .0843272     8.01   0.000     .5097676     .840324
+          2  |    .284425   .0658543     4.32   0.000     .1553528    .4134971
+          3  |   .0836847   .1279528     0.65   0.513    -.1670982    .3344675
+          4  |   .1535532    .043253     3.55   0.000      .068779    .2383275
+          5  |   .4742912   .0864411     5.49   0.000     .3048697    .6437126
+          6  |   .5886069   .0966524     6.09   0.000     .3991717    .7780421
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(navy) mcolor(navy) msymbol(D)) ///
+>     ciopts(fcolor(navy%20) lcolor(none)) ///
+>     name(th_plot, replace) ///
+>     title("THA") ///
+>     ytitle("Marginal Effect") ///
+>     xtitle("Wave")
+
+Variables that uniquely identify margins: wave
+
+. restore
+
+. 
+. * Combine plots
+. graph combine vn_plot th_plot, ///
+>     title("HI Impact on OOP (Dynamic)") ///
+>     name(g_dynamic_effect, replace)
+
+. 
+. graph export "${figdir}\dynamic_effects_combined.png", replace as(png) width(2000)
+file \dynamic_effects_combined.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. graph export "${figdir}\g_dynamic_effect.png", replace as(png) width(2000)
+could not find Graph window
+r(693);
+
+end of do-file
+
+r(693);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * Combine plots
+. graph combine vn_plot th_plot, ///
+>     title("HI Impact on OOP (Dynamic)") ///
+>     name(g_dynamic_effect, replace)
+
+. 
+. graph export "${figdir}\g_dynamic_effect.png", replace as(png) width(2000)
+(file \g_dynamic_effect.png not found)
+file \g_dynamic_effect.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * ==============================================================================
+. * Thiết lập đường dẫn xuất file hình ảnh và bảng
+. * ==============================================================================
+. global figdir "D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. 
+> De tai cuoi ky\01. Bai viet LATEX 02\figures"
+
+. set scheme s2color
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD3a8c_000000.tmp"
+
+. * Combine plots
+. graph combine vn_plot th_plot, ///
+>     title("HI Impact on OOP (Dynamic)") ///
+>     name(g_dynamic_effect, replace)
+
+. 
+. graph export "${figdir}\g_dynamic_effect.png", replace as(png) width(2000)
+(file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LATEX 02\figures\g_dynamic_effect.png not found)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LATEX 02\figures\g_dynamic_effect.png saved as PNG format
+
+. 
+end of do-file
+
+. exit, clear

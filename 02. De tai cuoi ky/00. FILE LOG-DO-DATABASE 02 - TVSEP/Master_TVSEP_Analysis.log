@@ -1,0 +1,2170 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De t
+> ai cuoi ky\00. FILE LOG-DO-DATABASE 02 - TVSEP\Master_TVSEP_Analysis.log
+  log type:  text
+ opened on:   5 Mar 2026, 14:40:12
+
+. 
+. * Đặt scheme nền trắng tinh chuẩn học thuật
+. set scheme s1color 
+
+. 
+. use "TVSEP_Panel_Clean_CPI_Labelled.dta", clear
+
+. 
+. * ------------------------------------------------------------------------------
+. * PHẦN 1: THIẾT LẬP PANEL VÀ BIẾN SỐ
+. * ------------------------------------------------------------------------------
+. * Tạo định danh Panel duy nhất và khai báo thời gian
+. egen id_panel = group(hhid country_code)
+variable id_panel already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Đảm bảo biến giả (Dummy)
+. gen THAI_dummy = (country_code == "THA")
+variable THAI_dummy already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. xtset id_panel wave
+
+Panel variable: id_panel (unbalanced)
+ Time variable: wave, 2007 to 2024, but with gaps
+         Delta: 1 unit
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Gom nhóm biến kiểm soát
+. global X "age_head SEX_HEAD HH_SIZE Health_shock"
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 2: THỐNG KÊ MÔ TẢ VÀ ĐỒ THỊ XU HƯỚNG TỔNG QUAN
+. * ------------------------------------------------------------------------------
+. display ">>> XUẤT ĐỒ THỊ XU HƯỚNG CHI PHÍ OOP TỔNG THỂ <<<"
+>>> XUẤT ĐỒ THỊ XU HƯỚNG CHI PHÍ OOP TỔNG THỂ <<<
+
+. 
+. preserve
+
+. collapse (mean) mean_ln_OOP=ln_OOP_real, by(wave country_code INS_dummy)
+
+. twoway (line mean_ln_OOP wave if country_code=="VNM" & INS_dummy==0, lcolor(maroon) lpattern(dash) lwidth(medthick)) /
+> //
+>        (line mean_ln_OOP wave if country_code=="VNM" & INS_dummy==1, lcolor(maroon) lpattern(solid) lwidth(medthick) m
+> symbol(S)) ///
+>        (line mean_ln_OOP wave if country_code=="THA" & INS_dummy==0, lcolor(navy) lpattern(dash) lwidth(medthick)) ///
+>        (line mean_ln_OOP wave if country_code=="THA" & INS_dummy==1, lcolor(navy) lpattern(solid) lwidth(medthick) msy
+> mbol(D)), ///
+>        legend(order(1 "VN - Không BHYT" 2 "VN - Có BHYT" 3 "Thái - Không BHYT" 4 "Thái - Có BHYT") position(6) rows(2)
+> ) ///
+>        title("Xu hướng chi phí y tế tiền túi trung bình (2007-2024)") ///
+>        ytitle("Mean Log(OOP PPP USD Real)") xtitle("Năm khảo sát (Wave)") ///
+>        name(gtrend_overall, replace)
+
+. graph export "${figdir}\oop_trend_overall.png", replace as(png) width(2000)
+(file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LATEX 02\figures\oop_trend_overall.png not found)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LATEX 02\figures\oop_trend_overall.png saved as PNG format
+
+. restore
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 3: MÔ HÌNH HỒI QUY CHÍNH (BASELINE, MECHANISM & Q90)
+. * ------------------------------------------------------------------------------
+. display ">>> CHẠY CÁC MÔ HÌNH KINH TẾ LƯỢNG CỐT LÕI <<<"
+>>> CHẠY CÁC MÔ HÌNH KINH TẾ LƯỢNG CỐT LÕI <<<
+
+. 
+. * Mô hình 1: Tác động tổng thể
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   6,    518) =      53.44
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8361
+                                                  Adj R-squared   =     0.8006
+                                                  Within R-sq.    =     0.0220
+Number of clusters (village) =        519         Root MSE        =     0.7333
+
+                              (Std. err. adjusted for 519 clusters in village)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |  -.0770906   .0650143    -1.19   0.236    -.2048148    .0506336
+  INS_x_THAI |   .5543241   .0853306     6.50   0.000     .3866876    .7219607
+    age_head |   .0005059   .0043144     0.12   0.907    -.0079699    .0089818
+    SEX_HEAD |   .0157196   .1016101     0.15   0.877    -.1838989    .2153382
+     HH_SIZE |   .0909693   .0070346    12.93   0.000     .0771494    .1047892
+Health_shock |    .077637   .0215913     3.60   0.000     .0352197    .1200543
+       _cons |   6.270619   .2118797    29.60   0.000      5.85437    6.686868
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m1_base
+
+. 
+. * Mô hình 2: Cơ chế vượt tuyến
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   8,    518) =      46.00
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8364
+                                                  Adj R-squared   =     0.8010
+                                                  Within R-sq.    =     0.0239
+Number of clusters (village) =        519         Root MSE        =     0.7327
+
+                               (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------
+              |               Robust
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |  -.0734868    .064887    -1.13   0.258    -.2009607    .0539872
+   INS_x_THAI |   .5455349   .0851591     6.41   0.000     .3782352    .7128345
+     BYPASSED |   .0645448   .0230312     2.80   0.005     .0192988    .1097908
+BYPASS_x_THAI |    .013898   .0300669     0.46   0.644    -.0451702    .0729661
+     age_head |   .0004293    .004295     0.10   0.920    -.0080085    .0088671
+     SEX_HEAD |   .0169514   .1013001     0.17   0.867    -.1820581    .2159609
+      HH_SIZE |   .0903113   .0070046    12.89   0.000     .0765505    .1040722
+ Health_shock |   .0649678   .0212922     3.05   0.002      .023138    .1067975
+        _cons |   6.255969   .2109057    29.66   0.000     5.841633    6.670305
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m2_bypass
+
+. 
+. * Mô hình 3: Thảm họa y tế (Phân vị 90th)
+. * Ghi chú: Dùng sqreg với FE cấp Tỉnh (i.province) để tránh lỗi không hội tụ của RIF tại vùng đuôi
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X i.province i.wave, q(.90)
+province:  string variables may not be used as factor variables
+r(109);
+
+end of do-file
+
+r(109);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Mô hình 3: Thảm họa y tế (Phân vị 90th)
+. * Ghi chú: Dùng sqreg với FE cấp Tỉnh (i.province) để tránh lỗi không hội tụ của RIF tại vùng đuôi
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X i.province i.wave, q(.90)
+province:  string variables may not be used as factor variables
+r(109);
+
+end of do-file
+
+r(109);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Mô hình 3: Thảm họa y tế (Phân vị 90th)
+. encode province, gen(province_id)
+
+. * Ghi chú: Dùng sqreg với FE cấp Tỉnh (i.province) để tránh lỗi không hội tụ của RIF tại vùng đuôi
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X i.province i.wave, q(.90)
+province:  string variables may not be used as factor variables
+r(109);
+
+end of do-file
+
+r(109);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Mô hình 3: Thảm họa y tế (Phân vị 90th)
+. encode province, gen(province_id)
+variable province_id already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. describe province_id
+
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+------------------------------------------------------------------------------------------------------------------------
+province_id     long    %8.0g      province_id
+                                              Province code
+
+. tab province_id
+
+   Province |
+       code |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |          5        0.02        0.02
+         10 |          5        0.02        0.03
+        100 |        170        0.54        0.57
+        102 |          4        0.01        0.58
+        103 |          1        0.00        0.58
+        104 |          5        0.02        0.60
+        105 |          9        0.03        0.63
+        106 |          3        0.01        0.64
+        108 |        146        0.46        1.10
+        109 |          3        0.01        1.11
+        110 |         28        0.09        1.19
+        111 |          2        0.01        1.20
+        112 |         13        0.04        1.24
+        113 |          3        0.01        1.25
+        114 |          4        0.01        1.26
+        117 |          7        0.02        1.29
+        119 |          2        0.01        1.29
+         12 |         11        0.03        1.33
+        120 |         83        0.26        1.59
+        122 |          1        0.00        1.59
+        123 |          3        0.01        1.60
+        125 |          4        0.01        1.61
+        126 |         21        0.07        1.68
+        128 |          5        0.02        1.69
+        129 |          1        0.00        1.70
+         13 |          3        0.01        1.71
+        130 |         13        0.04        1.75
+        131 |          1        0.00        1.75
+        132 |         10        0.03        1.78
+        133 |          1        0.00        1.79
+        135 |         28        0.09        1.87
+        136 |          2        0.01        1.88
+        138 |          1        0.00        1.88
+         14 |          2        0.01        1.89
+        140 |         22        0.07        1.96
+        141 |          1        0.00        1.96
+        144 |         56        0.18        2.14
+        145 |          3        0.01        2.15
+        147 |          6        0.02        2.17
+         15 |          9        0.03        2.20
+        150 |         61        0.19        2.39
+        153 |          1        0.00        2.39
+        154 |          2        0.01        2.40
+        155 |          1        0.00        2.40
+        156 |          8        0.03        2.43
+        159 |          1        0.00        2.43
+         16 |          7        0.02        2.45
+        160 |         15        0.05        2.50
+        162 |         11        0.03        2.53
+        165 |          2        0.01        2.54
+        166 |          1        0.00        2.54
+        168 |          5        0.02        2.56
+         17 |          3        0.01        2.57
+        170 |          6        0.02        2.59
+        171 |          1        0.00        2.59
+        172 |          1        0.00        2.59
+        173 |          1        0.00        2.60
+        174 |          1        0.00        2.60
+        175 |          3        0.01        2.61
+         18 |         11        0.03        2.64
+        180 |         39        0.12        2.77
+        181 |          1        0.00        2.77
+        189 |          7        0.02        2.79
+         19 |          1        0.00        2.79
+        192 |         10        0.03        2.83
+        194 |          1        0.00        2.83
+        195 |          1        0.00        2.83
+          2 |          4        0.01        2.84
+         20 |         35        0.11        2.95
+        200 |         36        0.11        3.07
+        204 |          2        0.01        3.07
+        205 |          1        0.00        3.08
+        207 |          1        0.00        3.08
+         21 |          3        0.01        3.09
+        210 |          2        0.01        3.10
+        216 |          5        0.02        3.11
+        218 |          1        0.00        3.11
+         22 |          3        0.01        3.12
+        220 |          2        0.01        3.13
+        225 |          5        0.02        3.15
+        230 |          2        0.01        3.15
+        231 |          2        0.01        3.16
+        234 |          1        0.00        3.16
+         24 |         68        0.21        3.38
+        240 |         12        0.04        3.41
+        243 |          1        0.00        3.42
+        247 |          1        0.00        3.42
+         25 |         32        0.10        3.52
+        250 |          2        0.01        3.53
+        252 |          1        0.00        3.53
+        260 |          1        0.00        3.53
+        264 |          1        0.00        3.54
+         27 |          8        0.03        3.56
+        270 |          1        0.00        3.57
+        275 |          1        0.00        3.57
+         28 |         45        0.14        3.71
+        280 |          2        0.01        3.72
+         29 |          1        0.00        3.72
+        294 |          1        0.00        3.72
+          3 |          1        0.00        3.73
+         30 |        165        0.52        4.25
+        300 |         12        0.04        4.28
+        308 |          1        0.00        4.29
+         31 |      4,459       14.04       18.33
+         32 |         39        0.12       18.45
+        320 |          2        0.01       18.46
+        322 |          1        0.00       18.46
+         33 |          2        0.01       18.47
+         34 |      6,110       19.24       37.71
+        340 |          2        0.01       37.72
+        344 |          1        0.00       37.72
+         35 |        145        0.46       38.18
+        350 |          1        0.00       38.18
+         36 |        128        0.40       38.59
+        360 |          1        0.00       38.59
+         37 |          5        0.02       38.60
+        375 |          1        0.00       38.61
+        378 |          1        0.00       38.61
+         38 |         11        0.03       38.65
+         39 |          1        0.00       38.65
+        395 |          1        0.00       38.65
+          4 |          5        0.02       38.67
+         40 |        205        0.65       39.31
+        400 |          7        0.02       39.34
+        405 |      5,112       16.10       55.44
+         41 |          3        0.01       55.45
+        411 |      4,570       14.39       69.84
+         42 |        108        0.34       70.18
+         43 |          3        0.01       70.19
+        432 |          1        0.00       70.19
+         45 |         89        0.28       70.47
+         46 |          4        0.01       70.49
+         47 |          1        0.00       70.49
+         48 |      2,266        7.14       77.63
+         49 |         23        0.07       77.70
+          5 |          1        0.00       77.70
+         50 |        219        0.69       78.39
+         51 |          2        0.01       78.40
+         52 |         16        0.05       78.45
+         53 |          3        0.01       78.46
+         54 |        232        0.73       79.19
+         55 |         25        0.08       79.27
+         56 |         45        0.14       79.41
+         57 |          7        0.02       79.43
+         58 |          5        0.02       79.45
+         59 |          3        0.01       79.46
+          6 |          1        0.00       79.46
+         60 |        255        0.80       80.26
+        600 |          1        0.00       80.26
+        605 |      5,203       16.39       96.65
+         62 |          6        0.02       96.67
+         63 |         53        0.17       96.84
+         64 |         38        0.12       96.96
+         65 |         35        0.11       97.07
+         66 |         12        0.04       97.11
+         67 |          2        0.01       97.11
+         68 |          8        0.03       97.14
+         69 |          1        0.00       97.14
+          7 |          2        0.01       97.15
+         70 |        162        0.51       97.66
+         71 |          2        0.01       97.66
+         72 |        158        0.50       98.16
+         73 |          2        0.01       98.17
+         74 |          2        0.01       98.17
+         75 |         33        0.10       98.28
+         76 |          5        0.02       98.29
+         77 |         13        0.04       98.33
+         78 |         17        0.05       98.39
+          8 |          1        0.00       98.39
+         80 |        153        0.48       98.87
+         81 |         97        0.31       99.18
+         83 |          4        0.01       99.19
+         84 |         42        0.13       99.32
+         85 |         11        0.03       99.36
+         86 |          3        0.01       99.37
+         88 |          7        0.02       99.39
+          9 |          4        0.01       99.40
+         90 |        133        0.42       99.82
+         91 |          2        0.01       99.83
+         92 |          1        0.00       99.83
+         93 |          1        0.00       99.83
+         94 |          3        0.01       99.84
+         95 |          8        0.03       99.87
+         96 |         37        0.12       99.98
+         98 |          5        0.02      100.00
+------------+-----------------------------------
+      Total |     31,750      100.00
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Ghi chú: Dùng sqreg với FE cấp Tỉnh (i.province) để tránh lỗi không hội tụ của RIF tại vùng đuôi
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI ///
+>       $X i.province_id i.wave, q(.90)
+(fitting base model)
+convergence not achieved.
+convergence not achieved
+r(430);
+
+end of do-file
+
+r(430);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI ///
+>       $X i.province_id i.wave, q(.90)
+(fitting base model)
+convergence not achieved.
+convergence not achieved
+r(430);
+
+end of do-file
+
+r(430);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. estimates store m3_q90
+
+. 
+end of do-file
+
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, q(.90)
+(fitting base model)
+
+Bootstrap replications (20)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+....................
+
+Simultaneous quantile regression                    Number of obs =     29,473
+  bootstrap(20) SEs                                 .90 Pseudo R2 =     0.1245
+
+-------------------------------------------------------------------------------
+              |              Bootstrap
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+q90           |
+    INS_dummy |    .301333   .0556326     5.42   0.000     .1922906    .4103754
+   INS_x_THAI |   -.690161    .048813   -14.14   0.000    -.7858366   -.5944854
+     BYPASSED |  -.3536063   .0200101   -17.67   0.000     -.392827   -.3143856
+BYPASS_x_THAI |    .394892   .0220673    17.89   0.000     .3516391     .438145
+     age_head |   -.001753   .0000215   -81.71   0.000    -.0017951    -.001711
+     SEX_HEAD |  -.0178278   .0191981    -0.93   0.353    -.0554568    .0198013
+      HH_SIZE |   .0568942   .0056168    10.13   0.000     .0458851    .0679034
+ Health_shock |    .142173   .0177102     8.03   0.000     .1074602    .1768859
+        _cons |   8.376754   .0331422   252.75   0.000     8.311794    8.441715
+-------------------------------------------------------------------------------
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI ///
+>       $X i.wave, q(.90)
+(fitting base model)
+
+Bootstrap replications (20)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+....................
+
+Simultaneous quantile regression                    Number of obs =     29,473
+  bootstrap(20) SEs                                 .90 Pseudo R2 =     0.3583
+
+-------------------------------------------------------------------------------
+              |              Bootstrap
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+q90           |
+    INS_dummy |   .3453596   .0487006     7.09   0.000     .2499042     .440815
+   INS_x_THAI |  -.4517331   .0506125    -8.93   0.000    -.5509358   -.3525303
+     BYPASSED |  -.1664336    .019412    -8.57   0.000    -.2044821   -.1283852
+BYPASS_x_THAI |   .2444607   .0284129     8.60   0.000     .1887701    .3001512
+     age_head |  -.0025467   .0006339    -4.02   0.000    -.0037891   -.0013043
+     SEX_HEAD |   .0078733   .0294942     0.27   0.790    -.0499366    .0656832
+      HH_SIZE |   .0516777   .0041969    12.31   0.000     .0434517    .0599038
+ Health_shock |   .0962773   .0348707     2.76   0.006     .0279292    .1646254
+              |
+         wave |
+        2008  |  -1.687666   .0263608   -64.02   0.000    -1.739334   -1.635997
+        2010  |   .1385089   .0242146     5.72   0.000     .0910472    .1859706
+        2011  |   .1092641    .027659     3.95   0.000     .0550513    .1634769
+        2013  |  -2.777975   .0275769  -100.74   0.000    -2.832027   -2.723923
+        2016  |   .7000156   .0248217    28.20   0.000      .651364    .7486672
+        2017  |   .7530035   .0246759    30.52   0.000     .7046376    .8013694
+        2022  |   .2537068   .1288955     1.97   0.049     .0010659    .5063477
+        2024  |   1.764645   1.230845     1.43   0.152    -.6478646    4.177155
+              |
+        _cons |   8.102471   .0313244   258.66   0.000     8.041074    8.163868
+-------------------------------------------------------------------------------
+
+. 
+. estimates store m3_q90
+
+. 
+. * Xuất bảng
+. esttab m1_base m2_bypass m3_q90 using "Table_Main_Results.rtf", replace ///
+>     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     keep(INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI Health_shock) ///
+>     coeflabels(INS_dummy "BHYT (Chung/VN)" INS_x_THAI "BHYT x Thái Lan" ///
+>                BYPASSED "Vượt tuyến (Chung)" BYPASS_x_THAI "Vượt tuyến x Thái Lan") ///
+>     mtitles("TWFE (Mean)" "Mechanism (Mean)" "SQREG (Q90 - Thảm họa)")
+(file Table_Main_Results.rtf not found)
+(output written to Table_Main_Results.rtf)
+
+. 
+end of do-file
+
+. summ age_head
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+    age_head |     29,699    275.8601    617.8806          2       2005
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * code lại tuổi: 
+. gen age = .
+(31,779 missing values generated)
+
+. replace age = age_head if age_head >=15 & age_head <=100
+(25,993 real changes made)
+
+. replace age = wave - age_head if age_head > 1900 & age_head <= wave
+(3,524 real changes made)
+
+. replace age = . if age <15 | age >100
+(0 real changes made)
+
+. sum age, detail
+
+                             age
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%           20             15
+ 5%           28             15
+10%           33             15       Obs              29,517
+25%           40             15       Sum of wgt.      29,517
+
+50%           51                      Mean           51.28214
+                        Largest       Std. dev.      14.86986
+75%           61            100
+90%           71            100       Variance       221.1128
+95%           77            100       Skewness       .2004754
+99%           86            100       Kurtosis       2.668554
+
+. hist age
+(bin=44, start=15, width=1.9318182)
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. gen age2 = age^2
+(2,262 missing values generated)
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 1. Thay thế age_head bằng biến age đã làm sạch
+. replace age_head = age if age != .
+(3,524 real changes made)
+
+. * 2. Xóa biến age tạm
+. drop age
+
+. * 3. Kiểm tra lại nhanh
+. sum age_head
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+    age_head |     29,699    51.04441    15.16237          2        110
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. gen age2 = age^2
+variable age2 already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 4. Lưu đè file dataset
+. save "TVSEP_Panel_Clean_CPI_Labelled_Final.dta", replace
+(file TVSEP_Panel_Clean_CPI_Labelled_Final.dta not found)
+file TVSEP_Panel_Clean_CPI_Labelled_Final.dta saved
+
+. 
+end of do-file
+
+. use "TVSEP_Panel_Clean_CPI_Labelled_Final.dta", clear
+
+. use "TVSEP_Panel_Clean_CPI_Labelled_Final.dta", clear
+
+. describe
+
+Contains data from TVSEP_Panel_Clean_CPI_Labelled_Final.dta
+ Observations:        31,779                  
+    Variables:            43                  5 Mar 2026 15:19
+------------------------------------------------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+------------------------------------------------------------------------------------------------------------------------
+hhid            str32   %-9s                  Household ID
+province        str3    %-9s                  Province code
+district        str5    %-9s                  District code
+commune         str7    %-9s                  Commune code
+village         str9    %-9s                  Village code
+OOP_total       double  %10.0g                Total out-of-pocket health expenditure (local currency)
+INS_dummy       double  %10.0g                Health insurance dummy (1=insured, 0=not insured)
+Health_shock    double  %10.0g                Health shock dummy (1=shock, 0=no shock)
+AGE_HEAD        double  %10.0g                Year of birth of household head
+SEX_HEAD        double  %10.0g                Sex of household head (1=male, 0=female)
+HH_SIZE         double  %10.0g                Household size (number of members)
+BYPASSED        double  %10.0g                Bypassed local health facility (1=yes, 0=no)
+OOP_total_clean double  %10.0g                Cleaned OOP expenditure (local currency)
+ln_OOP          double  %10.0g                Log of OOP expenditure (nominal)
+wave            double  %10.0g                Survey year
+country_code    str3    %-9s                  Country code (VNM/THA)
+age_head        double  %10.0g                Age of household head
+interview__key  str11   %-9s                  Interview identifier
+ppp             double  %10.0g                Purchasing Power Parity conversion factor
+exrate          double  %10.0g                Exchange rate (local currency per USD)
+OOP_ppp         double  %10.0g                OOP expenditure in PPP USD (nominal)
+OOP_usd         double  %10.0g                OOP expenditure in USD (nominal)
+OOP_local       double  %10.0g                OOP expenditure in local currency
+zscore_usd      double  %10.0g                Z-score of OOP expenditure in USD
+country_name    str8    %-9s                  Country name
+cpi_index       double  %10.0g                Consumer Price Index (2010=100)
+OOP_usd_real    double  %10.0g                OOP expenditure in USD (constant price, CPI adjusted)
+OOP_ppp_real    double  %10.0g                OOP expenditure in PPP USD (constant price, CPI adjusted)
+ln_OOP_real     double  %10.0g                Log of OOP expenditure (constant price, CPI adjusted)
+INS_x_THAI      double  %10.0g                Interaction: insurance × Thailand
+id_panel        float   %9.0g                 group(hhid country_code)
+THAI_dummy      float   %9.0g                 
+BYPASS_x_THAI   float   %9.0g                 
+_est_m1_basel~e byte    %8.0g                 esample() from estimates store
+_est_m3_qreg90  byte    %8.0g                 esample() from estimates store
+_est_m_q50      byte    %8.0g                 esample() from estimates store
+_est_m_q90      byte    %8.0g                 esample() from estimates store
+cdf             float   %9.0g                 ECDF of ln_OOP_real
+_est_m1_base    byte    %8.0g                 esample() from estimates store
+_est_m2_bypass  byte    %8.0g                 esample() from estimates store
+province_id     long    %8.0g      province_id
+                                              Province code
+_est_m3_q90     byte    %8.0g                 esample() from estimates store
+age2            float   %9.0g                 
+------------------------------------------------------------------------------------------------------------------------
+Sorted by: id_panel  wave
+
+. * ==========================
+
+. 
+. * DATA AUDIT
+
+. 
+. * ==========================
+
+. 
+. 
+. 
+. describe
+
+Contains data from TVSEP_Panel_Clean_CPI_Labelled_Final.dta
+ Observations:        31,779                  
+    Variables:            43                  5 Mar 2026 15:19
+------------------------------------------------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+------------------------------------------------------------------------------------------------------------------------
+hhid            str32   %-9s                  Household ID
+province        str3    %-9s                  Province code
+district        str5    %-9s                  District code
+commune         str7    %-9s                  Commune code
+village         str9    %-9s                  Village code
+OOP_total       double  %10.0g                Total out-of-pocket health expenditure (local currency)
+INS_dummy       double  %10.0g                Health insurance dummy (1=insured, 0=not insured)
+Health_shock    double  %10.0g                Health shock dummy (1=shock, 0=no shock)
+AGE_HEAD        double  %10.0g                Year of birth of household head
+SEX_HEAD        double  %10.0g                Sex of household head (1=male, 0=female)
+HH_SIZE         double  %10.0g                Household size (number of members)
+BYPASSED        double  %10.0g                Bypassed local health facility (1=yes, 0=no)
+OOP_total_clean double  %10.0g                Cleaned OOP expenditure (local currency)
+ln_OOP          double  %10.0g                Log of OOP expenditure (nominal)
+wave            double  %10.0g                Survey year
+country_code    str3    %-9s                  Country code (VNM/THA)
+age_head        double  %10.0g                Age of household head
+interview__key  str11   %-9s                  Interview identifier
+ppp             double  %10.0g                Purchasing Power Parity conversion factor
+exrate          double  %10.0g                Exchange rate (local currency per USD)
+OOP_ppp         double  %10.0g                OOP expenditure in PPP USD (nominal)
+OOP_usd         double  %10.0g                OOP expenditure in USD (nominal)
+OOP_local       double  %10.0g                OOP expenditure in local currency
+zscore_usd      double  %10.0g                Z-score of OOP expenditure in USD
+country_name    str8    %-9s                  Country name
+cpi_index       double  %10.0g                Consumer Price Index (2010=100)
+OOP_usd_real    double  %10.0g                OOP expenditure in USD (constant price, CPI adjusted)
+OOP_ppp_real    double  %10.0g                OOP expenditure in PPP USD (constant price, CPI adjusted)
+ln_OOP_real     double  %10.0g                Log of OOP expenditure (constant price, CPI adjusted)
+INS_x_THAI      double  %10.0g                Interaction: insurance × Thailand
+id_panel        float   %9.0g                 group(hhid country_code)
+THAI_dummy      float   %9.0g                 
+BYPASS_x_THAI   float   %9.0g                 
+_est_m1_basel~e byte    %8.0g                 esample() from estimates store
+_est_m3_qreg90  byte    %8.0g                 esample() from estimates store
+_est_m_q50      byte    %8.0g                 esample() from estimates store
+_est_m_q90      byte    %8.0g                 esample() from estimates store
+cdf             float   %9.0g                 ECDF of ln_OOP_real
+_est_m1_base    byte    %8.0g                 esample() from estimates store
+_est_m2_bypass  byte    %8.0g                 esample() from estimates store
+province_id     long    %8.0g      province_id
+                                              Province code
+_est_m3_q90     byte    %8.0g                 esample() from estimates store
+age2            float   %9.0g                 
+------------------------------------------------------------------------------------------------------------------------
+Sorted by: id_panel  wave
+
+. 
+. codebook
+
+------------------------------------------------------------------------------------------------------------------------
+hhid                                                                                                        Household ID
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str32)
+
+         Unique values: 9,685                     Missing "": 0/31,779
+
+              Examples: "1845"
+                        "2765"
+                        "3640"
+                        "571"
+
+------------------------------------------------------------------------------------------------------------------------
+province                                                                                                   Province code
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str3)
+
+         Unique values: 185                       Missing "": 29/31,779
+
+              Examples: "34"
+                        "405"
+                        "411"
+                        "60"
+
+------------------------------------------------------------------------------------------------------------------------
+district                                                                                                   District code
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str5)
+
+         Unique values: 91                        Missing "": 9/31,779
+
+              Examples: "3110"
+                        "3426"
+                        "40519"
+                        "4808"
+
+------------------------------------------------------------------------------------------------------------------------
+commune                                                                                                     Commune code
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str7)
+
+         Unique values: 227                       Missing "": 9/31,779
+
+              Examples: "310716"
+                        "341902"
+                        "4051751"
+                        "480511"
+
+------------------------------------------------------------------------------------------------------------------------
+village                                                                                                     Village code
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str9)
+
+         Unique values: 521                       Missing "": 15/31,779
+
+              Examples: "31120201"
+                        "34300415"
+                        "411030504"
+                        "48100516"
+
+------------------------------------------------------------------------------------------------------------------------
+OOP_total                                                        Total out-of-pocket health expenditure (local currency)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1030000]                   Units: 1.000e-22
+         Unique values: 23,379                    Missing .: 0/31,779
+
+                  Mean: 58797.8
+             Std. dev.: 97208.3
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        298.201   2813.67     17224     77042    168122
+
+------------------------------------------------------------------------------------------------------------------------
+INS_dummy                                                              Health insurance dummy (1=insured, 0=not insured)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                       27,881  0
+                        3,898  1
+
+------------------------------------------------------------------------------------------------------------------------
+Health_shock                                                                    Health shock dummy (1=shock, 0=no shock)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                       29,329  0
+                        2,450  1
+
+------------------------------------------------------------------------------------------------------------------------
+AGE_HEAD                                                                                 Year of birth of household head
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [19,2010]                     Units: .001
+         Unique values: 174                       Missing .: 2,080/31,779
+
+                  Mean:  1737.8
+             Std. dev.: 614.076
+
+           Percentiles:     10%       25%       50%       75%       90%
+                             77      1948      1962      1972      1979
+
+------------------------------------------------------------------------------------------------------------------------
+SEX_HEAD                                                                        Sex of household head (1=male, 0=female)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 2,299/31,779
+
+            Tabulation: Freq.  Value
+                       23,763  0
+                        5,717  1
+                        2,299  .
+
+------------------------------------------------------------------------------------------------------------------------
+HH_SIZE                                                                               Household size (number of members)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [1,27]                        Units: 1
+         Unique values: 22                        Missing .: 0/31,779
+
+                  Mean: 5.14667
+             Std. dev.: 2.12408
+
+           Percentiles:     10%       25%       50%       75%       90%
+                              3         4         5         6         8
+
+------------------------------------------------------------------------------------------------------------------------
+BYPASSED                                                                    Bypassed local health facility (1=yes, 0=no)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                       23,629  0
+                        8,150  1
+
+------------------------------------------------------------------------------------------------------------------------
+OOP_total_clean                                                                 Cleaned OOP expenditure (local currency)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1030000]                   Units: 1.000e-22
+         Unique values: 23,379                    Missing .: 0/31,779
+
+                  Mean: 58797.8
+             Std. dev.: 97208.3
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        298.201   2813.67     17224     77042    168122
+
+------------------------------------------------------------------------------------------------------------------------
+ln_OOP                                                                                  Log of OOP expenditure (nominal)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,13.84507]                  Units: 1.000e-11
+         Unique values: 23,379                    Missing .: 0/31,779
+
+                  Mean: 8.99275
+             Std. dev.: 3.25154
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        5.70112    7.9426   9.75412   11.2521   12.0325
+
+------------------------------------------------------------------------------------------------------------------------
+wave                                                                                                         Survey year
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [2007,2024]                   Units: 1
+         Unique values: 9                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        4,241  2007
+                        4,175  2008
+                        4,056  2010
+                        1,542  2011
+                        3,882  2013
+                        3,716  2016
+                        3,698  2017
+                        2,326  2022
+                        4,143  2024
+
+------------------------------------------------------------------------------------------------------------------------
+country_code                                                                                      Country code (VNM/THA)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str3)
+
+         Unique values: 2                         Missing "": 0/31,779
+
+            Tabulation: Freq.  Value
+                       15,958  "THA"
+                       15,821  "VNM"
+
+------------------------------------------------------------------------------------------------------------------------
+age_head                                                                                           Age of household head
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [2,110]                       Units: .001
+         Unique values: 102                       Missing .: 2,080/31,779
+
+                  Mean: 51.0444
+             Std. dev.: 15.1624
+
+           Percentiles:     10%       25%       50%       75%       90%
+                             32        40        50        61        71
+
+------------------------------------------------------------------------------------------------------------------------
+interview__key                                                                                      Interview identifier
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str11)
+
+         Unique values: 5,306                     Missing "": 25,310/31,779
+
+              Examples: ""
+                        ""
+                        ""
+                        "01-68-97-85"
+
+------------------------------------------------------------------------------------------------------------------------
+ppp                                                                            Purchasing Power Parity conversion factor
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [10.492373,7308.3464]         Units: 1.000e-07
+         Unique values: 18                        Missing .: 0/31,779
+
+                  Mean: 3123.82
+             Std. dev.: 3227.93
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        10.8911   12.1525   12.3872   6941.45    7211.6
+
+------------------------------------------------------------------------------------------------------------------------
+exrate                                                                            Exchange rate (local currency per USD)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [30.491733,24164.886]         Units: 1.000e-06
+         Unique values: 18                        Missing .: 0/31,779
+
+                  Mean: 10093.9
+             Std. dev.: 10307.3
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        31.6857   33.9398   35.2964   20933.4   23271.2
+
+------------------------------------------------------------------------------------------------------------------------
+OOP_ppp                                                                             OOP expenditure in PPP USD (nominal)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,148383.94]                 Units: 1.000e-10
+         Unique values: 25,263                    Missing .: 0/31,779
+
+                  Mean:  6281.5
+             Std. dev.: 9954.97
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        28.5922   301.573   2608.72   8468.41   17132.4
+
+------------------------------------------------------------------------------------------------------------------------
+OOP_usd                                                                                 OOP expenditure in USD (nominal)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,44260.693]                 Units: 1.000e-09
+         Unique values: 25,263                    Missing .: 0/31,779
+
+                  Mean: 2104.88
+             Std. dev.:  3270.1
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        8.50014   104.742   827.647   2849.78   5897.15
+
+------------------------------------------------------------------------------------------------------------------------
+OOP_local                                                                              OOP expenditure in local currency
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1.030e+09]                 Units: 1.000e-12
+         Unique values: 24,333                    Missing .: 0/31,779
+
+                  Mean: 2.1e+07
+             Std. dev.: 5.6e+07
+
+           Percentiles:     10%       25%       50%       75%       90%
+                            430   8980.72    225058   1.4e+07   6.4e+07
+
+------------------------------------------------------------------------------------------------------------------------
+zscore_usd                                                                             Z-score of OOP expenditure in USD
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [-1.692543,2.9991196]         Units: 1.000e-12
+         Unique values: 25,268                    Missing .: 0/31,779
+
+                  Mean: -.076403
+             Std. dev.:  .837785
+
+           Percentiles:      10%       25%       50%       75%       90%
+                        -.951029  -.636912  -.338723   .305427   1.13808
+
+------------------------------------------------------------------------------------------------------------------------
+country_name                                                                                                Country name
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: String (str8)
+
+         Unique values: 2                         Missing "": 0/31,779
+
+            Tabulation: Freq.  Value
+                       15,958  "Thailand"
+                       15,821  "Viet Nam"
+
+               Warning: Variable has embedded blanks.
+
+------------------------------------------------------------------------------------------------------------------------
+cpi_index                                                                                Consumer Price Index (2010=100)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [69.694993,189.70267]         Units: 1.000e-06
+         Unique values: 17                        Missing .: 0/31,779
+
+                  Mean: 117.665
+             Std. dev.: 31.2229
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        85.8053   97.6807   110.551   138.007   177.306
+
+------------------------------------------------------------------------------------------------------------------------
+OOP_usd_real                                                       OOP expenditure in USD (constant price, CPI adjusted)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,26262.796]                 Units: 1.000e-09
+         Unique values: 25,263                    Missing .: 0/31,779
+
+                  Mean: 1831.22
+             Std. dev.: 2589.24
+
+           Percentiles:     10%       25%       50%       75%       90%
+                         6.5443   88.1099   853.171   2650.04   4901.43
+
+------------------------------------------------------------------------------------------------------------------------
+OOP_ppp_real                                                   OOP expenditure in PPP USD (constant price, CPI adjusted)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,84546.921]                 Units: 1.000e-09
+         Unique values: 25,263                    Missing .: 0/31,779
+
+                  Mean: 5476.02
+             Std. dev.: 7728.69
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        22.7316   254.464   2633.32   8062.34   14592.9
+
+------------------------------------------------------------------------------------------------------------------------
+ln_OOP_real                                                        Log of OOP expenditure (constant price, CPI adjusted)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,10.175947]                 Units: 1.000e-11
+         Unique values: 25,263                    Missing .: 0/31,779
+
+                  Mean:  5.9252
+             Std. dev.: 2.54012
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        2.02079   4.48987   6.75013   7.88271   8.49749
+
+------------------------------------------------------------------------------------------------------------------------
+INS_x_THAI                                                                             Interaction: insurance × Thailand
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                       29,650  0
+                        2,129  1
+
+------------------------------------------------------------------------------------------------------------------------
+id_panel                                                                                        group(hhid country_code)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (float)
+
+                 Range: [1,10848]                     Units: 1
+         Unique values: 10,848                    Missing .: 0/31,779
+
+                  Mean:  4256.3
+             Std. dev.: 2643.34
+
+           Percentiles:     10%       25%       50%       75%       90%
+                           1070      2113      3924      5860      8360
+
+------------------------------------------------------------------------------------------------------------------------
+THAI_dummy                                                                                                   (unlabeled)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (float)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                       15,821  0
+                       15,958  1
+
+------------------------------------------------------------------------------------------------------------------------
+BYPASS_x_THAI                                                                                                (unlabeled)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (float)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                       28,474  0
+                        3,305  1
+
+------------------------------------------------------------------------------------------------------------------------
+_est_m1_baseline                                                                          esample() from estimates store
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (byte)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        8,025  0
+                       23,754  1
+
+------------------------------------------------------------------------------------------------------------------------
+_est_m3_qreg90                                                                            esample() from estimates store
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (byte)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        2,306  0
+                       29,473  1
+
+------------------------------------------------------------------------------------------------------------------------
+_est_m_q50                                                                                esample() from estimates store
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (byte)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        2,306  0
+                       29,473  1
+
+------------------------------------------------------------------------------------------------------------------------
+_est_m_q90                                                                                esample() from estimates store
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (byte)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        2,306  0
+                       29,473  1
+
+------------------------------------------------------------------------------------------------------------------------
+cdf                                                                                                  ECDF of ln_OOP_real
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (float)
+
+                 Range: [.00003147,1]                 Units: 1.000e-11
+         Unique values: 31,779                    Missing .: 0/31,779
+
+                  Mean: .500016
+             Std. dev.:  .28868
+
+           Percentiles:     10%       25%       50%       75%       90%
+                        .100003   .250008   .500016   .750024   .900028
+
+------------------------------------------------------------------------------------------------------------------------
+_est_m1_base                                                                              esample() from estimates store
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (byte)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        8,025  0
+                       23,754  1
+
+------------------------------------------------------------------------------------------------------------------------
+_est_m2_bypass                                                                            esample() from estimates store
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (byte)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        8,025  0
+                       23,754  1
+
+------------------------------------------------------------------------------------------------------------------------
+province_id                                                                                                Province code
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (long)
+                 Label: province_id, but 1 nonmissing value is not labeled
+
+                 Range: [1,185]                       Units: 1
+         Unique values: 185                       Missing .: 29/31,779
+
+              Examples: 109   34
+                        125   405
+                        127   411
+                        148   60
+
+------------------------------------------------------------------------------------------------------------------------
+_est_m3_q90                                                                               esample() from estimates store
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (byte)
+
+                 Range: [0,1]                         Units: 1
+         Unique values: 2                         Missing .: 0/31,779
+
+            Tabulation: Freq.  Value
+                        2,306  0
+                       29,473  1
+
+------------------------------------------------------------------------------------------------------------------------
+age2                                                                                                         (unlabeled)
+------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (float)
+
+                 Range: [225,10000]                   Units: .0001
+         Unique values: 87                        Missing .: 2,262/31,779
+
+                  Mean: 2850.96
+             Std. dev.:  1594.6
+
+           Percentiles:     10%       25%       50%       75%       90%
+                           1089      1600      2601      3721      5041
+
+. 
+. 
+. 
+. * Check ranges
+
+. 
+. foreach var of varlist _all {
+  2. 
+.     capture confirm numeric variable `var'
+  3. 
+.     if !_rc {
+  4. 
+.         quietly summarize `var'
+  5. 
+.         di "`var' : min=" r(min) " max=" r(max)
+  6. 
+.     }
+  7. 
+. }
+OOP_total : min=0 max=1030000
+INS_dummy : min=0 max=1
+Health_shock : min=0 max=1
+AGE_HEAD : min=19 max=2010
+SEX_HEAD : min=0 max=1
+HH_SIZE : min=1 max=27
+BYPASSED : min=0 max=1
+OOP_total_clean : min=0 max=1030000
+ln_OOP : min=0 max=13.84507
+wave : min=2007 max=2024
+age_head : min=2 max=110
+ppp : min=10.492373 max=7308.3464
+exrate : min=30.491733 max=24164.886
+OOP_ppp : min=0 max=148383.94
+OOP_usd : min=0 max=44260.693
+OOP_local : min=0 max=1.030e+09
+zscore_usd : min=-1.692543 max=2.9991196
+cpi_index : min=69.694993 max=189.70267
+OOP_usd_real : min=0 max=26262.796
+OOP_ppp_real : min=0 max=84546.921
+ln_OOP_real : min=0 max=10.175947
+INS_x_THAI : min=0 max=1
+id_panel : min=1 max=10848
+THAI_dummy : min=0 max=1
+BYPASS_x_THAI : min=0 max=1
+_est_m1_baseline : min=0 max=1
+_est_m3_qreg90 : min=0 max=1
+_est_m_q50 : min=0 max=1
+_est_m_q90 : min=0 max=1
+cdf : min=.00003147 max=1
+_est_m1_base : min=0 max=1
+_est_m2_bypass : min=0 max=1
+province_id : min=1 max=185
+_est_m3_q90 : min=0 max=1
+age2 : min=225 max=10000
+
+. 
+. 
+. 
+. * Detect possible year variables
+
+. 
+. foreach var of varlist _all {
+  2. 
+.     capture confirm numeric variable `var'
+  3. 
+.     if !_rc {
+  4. 
+.         quietly summarize `var'
+  5. 
+.         if r(max) > 1900 & r(max) < 2100 {
+  6. 
+.             di "Possible YEAR variable: `var'"
+  7. 
+.         }
+  8. 
+.     }
+  9. 
+. }
+Possible YEAR variable: AGE_HEAD
+Possible YEAR variable: wave
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 1: THIẾT LẬP PANEL VÀ BIẾN SỐ
+. * ------------------------------------------------------------------------------
+. * Tạo định danh Panel duy nhất và khai báo thời gian
+. egen id_panel = group(hhid country_code)
+variable id_panel already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Đảm bảo biến giả (Dummy)
+. gen THAI_dummy = (country_code == "THA")
+variable THAI_dummy already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Gom nhóm biến kiểm soát
+. global X "age_head SEX_HEAD HH_SIZE Health_shock"
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 2: THỐNG KÊ MÔ TẢ VÀ ĐỒ THỊ XU HƯỚNG TỔNG QUAN
+. * ------------------------------------------------------------------------------
+. display ">>> XUẤT ĐỒ THỊ XU HƯỚNG CHI PHÍ OOP TỔNG THỂ <<<"
+>>> XUẤT ĐỒ THỊ XU HƯỚNG CHI PHÍ OOP TỔNG THỂ <<<
+
+. 
+. preserve
+
+. collapse (mean) mean_ln_OOP=ln_OOP_real, by(wave country_code INS_dummy)
+
+. twoway (line mean_ln_OOP wave if country_code=="VNM" & INS_dummy==0, lcolor(maroon) lpattern(dash) lwidth(medthick)) /
+> //
+>        (line mean_ln_OOP wave if country_code=="VNM" & INS_dummy==1, lcolor(maroon) lpattern(solid) lwidth(medthick) m
+> symbol(S)) ///
+>        (line mean_ln_OOP wave if country_code=="THA" & INS_dummy==0, lcolor(navy) lpattern(dash) lwidth(medthick)) ///
+>        (line mean_ln_OOP wave if country_code=="THA" & INS_dummy==1, lcolor(navy) lpattern(solid) lwidth(medthick) msy
+> mbol(D)), ///
+>        legend(order(1 "VN - Không BHYT" 2 "VN - Có BHYT" 3 "Thái - Không BHYT" 4 "Thái - Có BHYT") position(6) rows(2)
+> ) ///
+>        title("Xu hướng chi phí y tế tiền túi trung bình (2007-2024)") ///
+>        ytitle("Mean Log(OOP PPP USD Real)") xtitle("Năm khảo sát (Wave)") ///
+>        name(gtrend_overall, replace)
+
+. graph export "${figdir}\oop_trend_overall.png", replace as(png) width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LATEX 02\figures\oop_trend_overall.png saved as PNG format
+
+. restore
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 3: MÔ HÌNH HỒI QUY CHÍNH (BASELINE, MECHANISM & Q90)
+. * ------------------------------------------------------------------------------
+. display ">>> CHẠY CÁC MÔ HÌNH KINH TẾ LƯỢNG CỐT LÕI <<<"
+>>> CHẠY CÁC MÔ HÌNH KINH TẾ LƯỢNG CỐT LÕI <<<
+
+. 
+. * Mô hình 1: Tác động tổng thể
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   6,    518) =      53.44
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8361
+                                                  Adj R-squared   =     0.8006
+                                                  Within R-sq.    =     0.0220
+Number of clusters (village) =        519         Root MSE        =     0.7333
+
+                              (Std. err. adjusted for 519 clusters in village)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |  -.0770906   .0650143    -1.19   0.236    -.2048148    .0506336
+  INS_x_THAI |   .5543241   .0853306     6.50   0.000     .3866876    .7219607
+    age_head |   .0005059   .0043144     0.12   0.907    -.0079699    .0089818
+    SEX_HEAD |   .0157196   .1016101     0.15   0.877    -.1838989    .2153382
+     HH_SIZE |   .0909693   .0070346    12.93   0.000     .0771494    .1047892
+Health_shock |    .077637   .0215913     3.60   0.000     .0352197    .1200543
+       _cons |   6.270619   .2118797    29.60   0.000      5.85437    6.686868
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m1_base
+
+. 
+. * Mô hình 2: Cơ chế vượt tuyến
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   8,    518) =      46.00
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8364
+                                                  Adj R-squared   =     0.8010
+                                                  Within R-sq.    =     0.0239
+Number of clusters (village) =        519         Root MSE        =     0.7327
+
+                               (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------
+              |               Robust
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |  -.0734868    .064887    -1.13   0.258    -.2009607    .0539872
+   INS_x_THAI |   .5455349   .0851591     6.41   0.000     .3782352    .7128345
+     BYPASSED |   .0645448   .0230312     2.80   0.005     .0192988    .1097908
+BYPASS_x_THAI |    .013898   .0300669     0.46   0.644    -.0451702    .0729661
+     age_head |   .0004293    .004295     0.10   0.920    -.0080085    .0088671
+     SEX_HEAD |   .0169514   .1013001     0.17   0.867    -.1820581    .2159609
+      HH_SIZE |   .0903113   .0070046    12.89   0.000     .0765505    .1040722
+ Health_shock |   .0649678   .0212922     3.05   0.002      .023138    .1067975
+        _cons |   6.255969   .2109057    29.66   0.000     5.841633    6.670305
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m2_bypass
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Mô hình 3: Thảm họa y tế (Phân vị 90th)
+. encode province, gen(province_id)
+variable province_id already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Mô hình 3: Thảm họa y tế (Phân vị 90th)
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI ///
+>       $X i.wave, q(.90)
+(fitting base model)
+
+Bootstrap replications (20)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+....................
+
+Simultaneous quantile regression                    Number of obs =     29,473
+  bootstrap(20) SEs                                 .90 Pseudo R2 =     0.3582
+
+-------------------------------------------------------------------------------
+              |              Bootstrap
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+q90           |
+    INS_dummy |   .3244722   .0561215     5.78   0.000     .2144716    .4344727
+   INS_x_THAI |  -.4294567   .0529443    -8.11   0.000    -.5332298   -.3256836
+     BYPASSED |  -.1640312   .0193853    -8.46   0.000    -.2020273   -.1260351
+BYPASS_x_THAI |   .2427951   .0326283     7.44   0.000     .1788422     .306748
+     age_head |  -.0021105   .0006445    -3.27   0.001    -.0033737   -.0008473
+     SEX_HEAD |   .0034849   .0234425     0.15   0.882    -.0424633    .0494332
+      HH_SIZE |   .0500701   .0042465    11.79   0.000     .0417467    .0583935
+ Health_shock |   .1010148   .0407769     2.48   0.013     .0210904    .1809393
+              |
+         wave |
+        2008  |  -1.690535    .018692   -90.44   0.000    -1.727173   -1.653898
+        2010  |   .1365802   .0263695     5.18   0.000     .0848949    .1882656
+        2011  |   .1035259   .0296043     3.50   0.000     .0455001    .1615516
+        2013  |   -2.78089   .0347266   -80.08   0.000    -2.848956   -2.712825
+        2016  |   .6941762   .0221344    31.36   0.000     .6507919    .7375606
+        2017  |    .748241   .0216785    34.52   0.000     .7057501    .7907319
+        2022  |   .2486657   .1258478     1.98   0.048     .0019984     .495333
+        2024  |  -3.078916   .0516296   -59.63   0.000    -3.180112    -2.97772
+              |
+        _cons |   8.092865   .0380083   212.92   0.000     8.018367    8.167363
+-------------------------------------------------------------------------------
+
+. 
+. estimates store m3_q90
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Xuất bảng
+. esttab m1_base m2_bypass m3_q90 using "Table_Main_Results.rtf", replace ///
+>     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     keep(INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI Health_shock) ///
+>     coeflabels(INS_dummy "BHYT (Chung/VN)" INS_x_THAI "BHYT x Thái Lan" ///
+>                BYPASSED "Vượt tuyến (Chung)" BYPASS_x_THAI "Vượt tuyến x Thái Lan") ///
+>     mtitles("TWFE (Mean)" "Mechanism (Mean)" "SQREG (Q90 - Thảm họa)")
+(output written to Table_Main_Results.rtf)
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 3 quantile:
+. qreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, q(.50)
+Iteration  1:  WLS sum of weighted deviations =  26504.456
+
+Iteration  1: sum of abs. weighted deviations =  26505.352
+Iteration  2: sum of abs. weighted deviations =  26362.006
+Iteration  3: sum of abs. weighted deviations =  26164.979
+Iteration  4: sum of abs. weighted deviations =  26161.554
+Iteration  5: sum of abs. weighted deviations =  26081.221
+Iteration  6: sum of abs. weighted deviations =  26035.734
+Iteration  7: sum of abs. weighted deviations =  26028.656
+Iteration  8: sum of abs. weighted deviations =  25970.445
+note: alternate solutions exist.
+Iteration  9: sum of abs. weighted deviations =  25874.823
+Iteration 10: sum of abs. weighted deviations =  25821.195
+Iteration 11: sum of abs. weighted deviations =  25812.778
+Iteration 12: sum of abs. weighted deviations =  25808.243
+Iteration 13: sum of abs. weighted deviations =  25804.149
+note: alternate solutions exist.
+Iteration 14: sum of abs. weighted deviations =  25776.497
+Iteration 15: sum of abs. weighted deviations =   25774.03
+Iteration 16: sum of abs. weighted deviations =  25771.787
+Iteration 17: sum of abs. weighted deviations =  25769.956
+Iteration 18: sum of abs. weighted deviations =   25769.69
+Iteration 19: sum of abs. weighted deviations =   25766.07
+Iteration 20: sum of abs. weighted deviations =  25765.322
+Iteration 21: sum of abs. weighted deviations =  25764.372
+Iteration 22: sum of abs. weighted deviations =  25760.482
+Iteration 23: sum of abs. weighted deviations =  25759.002
+note: alternate solutions exist.
+Iteration 24: sum of abs. weighted deviations =   25757.71
+note: alternate solutions exist.
+Iteration 25: sum of abs. weighted deviations =  25757.003
+Iteration 26: sum of abs. weighted deviations =  25756.933
+Iteration 27: sum of abs. weighted deviations =  25756.489
+Iteration 28: sum of abs. weighted deviations =  25756.177
+Iteration 29: sum of abs. weighted deviations =  25756.111
+Iteration 30: sum of abs. weighted deviations =  25756.073
+Iteration 31: sum of abs. weighted deviations =  25756.048
+Iteration 32: sum of abs. weighted deviations =  25755.986
+note: alternate solutions exist.
+Iteration 33: sum of abs. weighted deviations =  25755.667
+Iteration 34: sum of abs. weighted deviations =  25755.646
+Iteration 35: sum of abs. weighted deviations =   25755.59
+Iteration 36: sum of abs. weighted deviations =  25755.587
+Iteration 37: sum of abs. weighted deviations =  25755.587
+Iteration 38: sum of abs. weighted deviations =  25755.582
+Iteration 39: sum of abs. weighted deviations =  25755.582
+Iteration 40: sum of abs. weighted deviations =  25755.581
+Iteration 41: sum of abs. weighted deviations =  25755.579
+Iteration 42: sum of abs. weighted deviations =  25755.579
+Iteration 43: sum of abs. weighted deviations =  25755.579
+Iteration 44: sum of abs. weighted deviations =  25755.579
+Iteration 45: sum of abs. weighted deviations =  25755.579
+Iteration 46: sum of abs. weighted deviations =  25755.579
+Iteration 47: sum of abs. weighted deviations =  25755.579
+
+Median regression                                   Number of obs =     29,473
+  Raw sum of deviations 28977.04 (about 6.8159955)
+  Min sum of deviations 25755.58                    Pseudo R2     =     0.1112
+
+-------------------------------------------------------------------------------
+  ln_OOP_real | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |   -2.13489    .073709   -28.96   0.000    -2.279363   -1.990417
+   INS_x_THAI |  -1.076147   .0934136   -11.52   0.000    -1.259242   -.8930527
+     BYPASSED |   .2475701   .0451185     5.49   0.000     .1591359    .3360043
+BYPASS_x_THAI |   .3359556   .0632801     5.31   0.000     .2119239    .4599874
+     age_head |  -.0108275   .0010808   -10.02   0.000     -.012946   -.0087091
+     SEX_HEAD |  -.8537672    .041008   -20.82   0.000    -.9341446   -.7733897
+      HH_SIZE |   .1421279   .0077478    18.34   0.000     .1269419    .1573138
+ Health_shock |  -.3122237    .059699    -5.23   0.000    -.4292364   -.1952111
+        _cons |   6.785129   .0699518    97.00   0.000      6.64802    6.922237
+-------------------------------------------------------------------------------
+
+. qreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, q(.75)
+Iteration  1:  WLS sum of weighted deviations =  24053.558
+
+Iteration  1: sum of abs. weighted deviations =  24057.561
+Iteration  2: sum of abs. weighted deviations =  23713.016
+Iteration  3: sum of abs. weighted deviations =   21830.55
+Iteration  4: sum of abs. weighted deviations =  19474.443
+Iteration  5: sum of abs. weighted deviations =  19221.004
+Iteration  6: sum of abs. weighted deviations =  18986.515
+Iteration  7: sum of abs. weighted deviations =  18556.043
+note: alternate solutions exist.
+Iteration  8: sum of abs. weighted deviations =  18449.447
+Iteration  9: sum of abs. weighted deviations =  18215.468
+Iteration 10: sum of abs. weighted deviations =  17868.456
+Iteration 11: sum of abs. weighted deviations =  17824.951
+Iteration 12: sum of abs. weighted deviations =  17815.611
+Iteration 13: sum of abs. weighted deviations =   17609.05
+Iteration 14: sum of abs. weighted deviations =  17458.778
+note: alternate solutions exist.
+Iteration 15: sum of abs. weighted deviations =   17441.07
+Iteration 16: sum of abs. weighted deviations =  17421.857
+Iteration 17: sum of abs. weighted deviations =   17379.97
+Iteration 18: sum of abs. weighted deviations =  17367.533
+Iteration 19: sum of abs. weighted deviations =  17364.698
+Iteration 20: sum of abs. weighted deviations =  17353.411
+Iteration 21: sum of abs. weighted deviations =  17349.882
+Iteration 22: sum of abs. weighted deviations =  17348.216
+Iteration 23: sum of abs. weighted deviations =  17332.475
+Iteration 24: sum of abs. weighted deviations =  17332.091
+Iteration 25: sum of abs. weighted deviations =  17331.615
+Iteration 26: sum of abs. weighted deviations =  17330.244
+Iteration 27: sum of abs. weighted deviations =  17330.211
+Iteration 28: sum of abs. weighted deviations =  17330.186
+Iteration 29: sum of abs. weighted deviations =  17330.115
+Iteration 30: sum of abs. weighted deviations =  17329.864
+Iteration 31: sum of abs. weighted deviations =  17329.282
+Iteration 32: sum of abs. weighted deviations =  17329.149
+note: alternate solutions exist.
+Iteration 33: sum of abs. weighted deviations =  17329.032
+Iteration 34: sum of abs. weighted deviations =  17329.027
+Iteration 35: sum of abs. weighted deviations =  17329.016
+Iteration 36: sum of abs. weighted deviations =  17329.009
+Iteration 37: sum of abs. weighted deviations =  17329.003
+Iteration 38: sum of abs. weighted deviations =  17328.988
+note: alternate solutions exist.
+Iteration 39: sum of abs. weighted deviations =  17328.969
+Iteration 40: sum of abs. weighted deviations =  17328.894
+Iteration 41: sum of abs. weighted deviations =  17328.867
+Iteration 42: sum of abs. weighted deviations =  17328.859
+Iteration 43: sum of abs. weighted deviations =  17328.822
+Iteration 44: sum of abs. weighted deviations =  17328.793
+Iteration 45: sum of abs. weighted deviations =  17328.792
+Iteration 46: sum of abs. weighted deviations =  17328.788
+Iteration 47: sum of abs. weighted deviations =  17328.786
+Iteration 48: sum of abs. weighted deviations =  17328.785
+Iteration 49: sum of abs. weighted deviations =  17328.785
+Iteration 50: sum of abs. weighted deviations =  17328.784
+Iteration 51: sum of abs. weighted deviations =  17328.778
+Iteration 52: sum of abs. weighted deviations =  17328.777
+Iteration 53: sum of abs. weighted deviations =  17328.777
+Iteration 54: sum of abs. weighted deviations =  17328.777
+Iteration 55: sum of abs. weighted deviations =  17328.777
+Iteration 56: sum of abs. weighted deviations =  17328.777
+Iteration 57: sum of abs. weighted deviations =  17328.777
+Iteration 58: sum of abs. weighted deviations =  17328.776
+Iteration 59: sum of abs. weighted deviations =  17328.776
+
+.75 Quantile regression                             Number of obs =     29,473
+  Raw sum of deviations 18351.92 (about 7.88724)
+  Min sum of deviations 17328.78                    Pseudo R2     =     0.0558
+
+-------------------------------------------------------------------------------
+  ln_OOP_real | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |  -1.650276   .0463468   -35.61   0.000    -1.741118   -1.559434
+   INS_x_THAI |  -1.239083   .0587367   -21.10   0.000    -1.354209   -1.123956
+     BYPASSED |  -.0976182   .0283696    -3.44   0.001    -.1532239   -.0420124
+BYPASS_x_THAI |   .3441205   .0397893     8.65   0.000     .2661317    .4221093
+     age_head |  -.0045028   .0006796    -6.63   0.000    -.0058349   -.0031708
+     SEX_HEAD |  -.4973994    .025785   -19.29   0.000    -.5479392   -.4468596
+      HH_SIZE |   .1076289   .0048716    22.09   0.000     .0980803    .1171776
+ Health_shock |   .0318528   .0375376     0.85   0.396    -.0417226    .1054281
+        _cons |   7.634865   .0439844   173.58   0.000     7.548654    7.721077
+-------------------------------------------------------------------------------
+
+. qreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, q(.90)
+Iteration  1:  WLS sum of weighted deviations =  21203.131
+
+Iteration  1: sum of abs. weighted deviations =  21223.876
+Iteration  2: sum of abs. weighted deviations =  18714.436
+Iteration  3: sum of abs. weighted deviations =  18138.761
+Iteration  4: sum of abs. weighted deviations =  16179.681
+Iteration  5: sum of abs. weighted deviations =  14719.436
+Iteration  6: sum of abs. weighted deviations =  13314.579
+Iteration  7: sum of abs. weighted deviations =  13152.581
+Iteration  8: sum of abs. weighted deviations =  12923.355
+Iteration  9: sum of abs. weighted deviations =  12226.054
+Iteration 10: sum of abs. weighted deviations =  11759.843
+Iteration 11: sum of abs. weighted deviations =  11430.882
+Iteration 12: sum of abs. weighted deviations =  11246.801
+Iteration 13: sum of abs. weighted deviations =  10699.791
+Iteration 14: sum of abs. weighted deviations =   10589.67
+Iteration 15: sum of abs. weighted deviations =   10285.55
+Iteration 16: sum of abs. weighted deviations =  9501.0708
+Iteration 17: sum of abs. weighted deviations =  8885.9023
+Iteration 18: sum of abs. weighted deviations =  8737.5714
+Iteration 19: sum of abs. weighted deviations =  8650.8414
+Iteration 20: sum of abs. weighted deviations =  8575.4706
+Iteration 21: sum of abs. weighted deviations =   8563.969
+Iteration 22: sum of abs. weighted deviations =  8551.8745
+Iteration 23: sum of abs. weighted deviations =  8541.3365
+Iteration 24: sum of abs. weighted deviations =  8464.9623
+Iteration 25: sum of abs. weighted deviations =  8461.2194
+Iteration 26: sum of abs. weighted deviations =   8456.985
+Iteration 27: sum of abs. weighted deviations =  8450.6376
+Iteration 28: sum of abs. weighted deviations =   8436.021
+Iteration 29: sum of abs. weighted deviations =  8435.0888
+Iteration 30: sum of abs. weighted deviations =  8424.4674
+Iteration 31: sum of abs. weighted deviations =  8421.1579
+Iteration 32: sum of abs. weighted deviations =  8420.4721
+Iteration 33: sum of abs. weighted deviations =  8418.6992
+Iteration 34: sum of abs. weighted deviations =   8417.337
+Iteration 35: sum of abs. weighted deviations =  8417.1015
+Iteration 36: sum of abs. weighted deviations =  8416.6518
+Iteration 37: sum of abs. weighted deviations =  8416.4519
+Iteration 38: sum of abs. weighted deviations =  8416.2701
+Iteration 39: sum of abs. weighted deviations =  8416.1731
+Iteration 40: sum of abs. weighted deviations =  8416.1196
+Iteration 41: sum of abs. weighted deviations =   8416.088
+Iteration 42: sum of abs. weighted deviations =  8416.0801
+Iteration 43: sum of abs. weighted deviations =  8415.8527
+Iteration 44: sum of abs. weighted deviations =  8415.8431
+Iteration 45: sum of abs. weighted deviations =   8415.843
+Iteration 46: sum of abs. weighted deviations =  8415.8284
+Iteration 47: sum of abs. weighted deviations =  8415.8203
+Iteration 48: sum of abs. weighted deviations =  8415.8139
+Iteration 49: sum of abs. weighted deviations =  8415.8125
+Iteration 50: sum of abs. weighted deviations =  8415.8123
+Iteration 51: sum of abs. weighted deviations =    8415.81
+Iteration 52: sum of abs. weighted deviations =  8415.8092
+Iteration 53: sum of abs. weighted deviations =   8415.804
+Iteration 54: sum of abs. weighted deviations =  8415.8004
+Iteration 55: sum of abs. weighted deviations =  8415.8004
+Iteration 56: sum of abs. weighted deviations =   8415.799
+Iteration 57: sum of abs. weighted deviations =   8415.798
+Iteration 58: sum of abs. weighted deviations =  8415.7936
+Iteration 59: sum of abs. weighted deviations =   8415.793
+Iteration 60: sum of abs. weighted deviations =  8415.7925
+Iteration 61: sum of abs. weighted deviations =  8415.7925
+Iteration 62: sum of abs. weighted deviations =  8415.7924
+Iteration 63: sum of abs. weighted deviations =  8415.7924
+
+.9 Quantile regression                              Number of obs =     29,473
+  Raw sum of deviations 8591.401 (about 8.4883907)
+  Min sum of deviations 8415.792                    Pseudo R2     =     0.0204
+
+-------------------------------------------------------------------------------
+  ln_OOP_real | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |  -.5918587   .0465984   -12.70   0.000    -.6831937   -.5005238
+   INS_x_THAI |  -.0248216   .0590556    -0.42   0.674    -.1405731      .09093
+     BYPASSED |  -.2444575   .0285237    -8.57   0.000    -.3003652   -.1885499
+BYPASS_x_THAI |   .3978441   .0400053     9.94   0.000     .3194318    .4762563
+     age_head |  -.0005008   .0006833    -0.73   0.464      -.00184    .0008385
+     SEX_HEAD |  -.3349601    .025925   -12.92   0.000    -.3857743   -.2841459
+      HH_SIZE |   .0831029   .0048981    16.97   0.000     .0735024    .0927033
+ Health_shock |   .0414575   .0377414     1.10   0.272    -.0325173    .1154323
+        _cons |   8.150839   .0442232   184.31   0.000     8.064159    8.237518
+-------------------------------------------------------------------------------
+
+. 
+. * Sau đó tạo bảng:
+. Table: Quantile Regression Results for OOP Expenditure
+command Table not defined by Table.ado
+r(199);
+
+end of do-file
+
+r(199);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 4: PHÂN TÍCH ĐỘNG (DYNAMIC ANALYSIS) - SỰ THAY ĐỔI THEO THỜI GIAN
+. * ------------------------------------------------------------------------------
+. display ">>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<"
+>>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<
+
+. 
+. * Chạy mô hình Fixed Effects với tương tác 3 chiều (Wave x INS x Country)
+. reghdfe ln_OOP_real i.INS_dummy##i.THAI_dummy##i.wave $X, ///
+>     absorb(id_panel) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 1 iterations)
+note: 1bn.THAI_dummy is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.
+> 0e-09)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 1 HDFE group                            F(  30,    518) =    5946.57
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8752
+                                                  Adj R-squared   =     0.8481
+                                                  Within R-sq.    =     0.8554
+Number of clusters (village) =        519         Root MSE        =     0.6402
+
+                                           (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------------------
+                          |               Robust
+              ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+              1.INS_dummy |   .6699598   .2089512     3.21   0.001     .2594639    1.080456
+             1.THAI_dummy |          0  (omitted)
+                          |
+     INS_dummy#THAI_dummy |
+                     1 1  |  -.7959517   .2561062    -3.11   0.002    -1.299086   -.2928173
+                          |
+                     wave |
+                    2008  |  -1.506335   .0257686   -58.46   0.000    -1.556958   -1.455711
+                    2010  |   .0054891   .0368899     0.15   0.882    -.0669832    .0779613
+                    2011  |  -.4041735   .0527617    -7.66   0.000    -.5078268   -.3005202
+                    2013  |  -3.400085   .0651672   -52.17   0.000    -3.528109    -3.27206
+                    2016  |   .3371476   .0465721     7.24   0.000     .2456543     .428641
+                    2017  |   .4643868   .0522741     8.88   0.000     .3616914    .5670822
+                          |
+           INS_dummy#wave |
+                  1 2008  |   -.778885   .2322188    -3.35   0.001    -1.235091   -.3226785
+                  1 2010  |   -.647378   .2126888    -3.04   0.002    -1.065217   -.2295394
+                  1 2011  |  -.4649128   .2341477    -1.99   0.048    -.9249086   -.0049169
+                  1 2013  |  -.6416357   .2539913    -2.53   0.012    -1.140615   -.1426561
+                  1 2016  |  -.2997674   .2550799    -1.18   0.240    -.8008856    .2013509
+                  1 2017  |   -.241214   .2352624    -1.03   0.306    -.7033997    .2209718
+                          |
+          THAI_dummy#wave |
+                  1 2008  |  -1.404037   .0312654   -44.91   0.000     -1.46546   -1.342614
+                  1 2010  |   .0062333   .0396365     0.16   0.875    -.0716348    .0841014
+                  1 2011  |   .5425792   .0576471     9.41   0.000     .4293283    .6558301
+                  1 2013  |   .5566546   .0606764     9.17   0.000     .4374525    .6758566
+                  1 2016  |   .3942716   .0352025    11.20   0.000     .3251144    .4634288
+                  1 2017  |   .4085509   .0361423    11.30   0.000     .3375473    .4795544
+                          |
+INS_dummy#THAI_dummy#wave |
+                1 1 2008  |   1.571146   .2828392     5.55   0.000     1.015493    2.126798
+                1 1 2010  |   1.043652   .2625746     3.97   0.000     .5278096    1.559494
+                1 1 2011  |   .6582442   .3097877     2.12   0.034     .0496494    1.266839
+                1 1 2013  |    .885803    .300304     2.95   0.003     .2958396    1.475766
+                1 1 2016  |   .9131002   .3142846     2.91   0.004     .2956711    1.530529
+                1 1 2017  |   .9079342   .3012871     3.01   0.003     .3160393    1.499829
+                          |
+                 age_head |     .00274    .004149     0.66   0.509    -.0054109    .0108908
+                 SEX_HEAD |   -.026077   .0901109    -0.29   0.772    -.2031048    .1509507
+                  HH_SIZE |   .0842982   .0062421    13.50   0.000     .0720352    .0965611
+             Health_shock |   .0221314   .0201525     1.10   0.273    -.0174593    .0617221
+                    _cons |   6.905728   .1832505    37.68   0.000     6.545722    7.265733
+-------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+-----------------------------------------------------+
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Tính toán Tác động Biên (Marginal Effects) của BHYT cho từng nước qua các năm
+. quietly margins THAI_dummy, dydx(INS_dummy) over(wave)
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Vẽ đồ thị Event-Study chuẩn Q1
+. marginsplot, x(wave) over(THAI_dummy) ///
+>     title("Tác động của BHYT lên Chi phí Y tế qua thời gian (Dynamic Effects)") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") xtitle("Năm khảo sát (Wave)") ///
+>     yline(0, lcolor(gs8) lpattern(dash)) ///
+>     plot1opts(lcolor(maroon) mcolor(maroon) msymbol(S)) /// Custom cho VN
+>     plot2opts(lcolor(navy) mcolor(navy) msymbol(D)) /// Custom cho Thái Lan
+>     ci1opts(fcolor(maroon%20) lcolor(none)) /// Vùng sai số mờ cho VN
+>     ci2opts(fcolor(navy%20) lcolor(none)) /// Vùng sai số mờ cho Thái
+>     legend(order(1 "Việt Nam (Marginal Effect)" 2 "Thái Lan (Marginal Effect)") position(6) rows(1)) ///
+>     name(g_dynamic_effect, replace)
+
+Variables that uniquely identify margins: THAI_dummy wave
+option over() not allowed
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 4: PHÂN TÍCH ĐỘNG (DYNAMIC ANALYSIS) - SỰ THAY ĐỔI THEO THỜI GIAN
+. * ------------------------------------------------------------------------------
+. display ">>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<"
+>>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<
+
+. 
+. * Chạy mô hình Fixed Effects với tương tác 3 chiều (Wave x INS x Country)
+. reghdfe ln_OOP_real i.INS_dummy##i.THAI_dummy##i.wave $X, ///
+>     absorb(id_panel) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 1 iterations)
+note: 1bn.THAI_dummy is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.
+> 0e-09)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 1 HDFE group                            F(  30,    518) =    5946.57
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8752
+                                                  Adj R-squared   =     0.8481
+                                                  Within R-sq.    =     0.8554
+Number of clusters (village) =        519         Root MSE        =     0.6402
+
+                                           (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------------------
+                          |               Robust
+              ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+              1.INS_dummy |   .6699598   .2089512     3.21   0.001     .2594639    1.080456
+             1.THAI_dummy |          0  (omitted)
+                          |
+     INS_dummy#THAI_dummy |
+                     1 1  |  -.7959517   .2561062    -3.11   0.002    -1.299086   -.2928173
+                          |
+                     wave |
+                    2008  |  -1.506335   .0257686   -58.46   0.000    -1.556958   -1.455711
+                    2010  |   .0054891   .0368899     0.15   0.882    -.0669832    .0779613
+                    2011  |  -.4041735   .0527617    -7.66   0.000    -.5078268   -.3005202
+                    2013  |  -3.400085   .0651672   -52.17   0.000    -3.528109    -3.27206
+                    2016  |   .3371476   .0465721     7.24   0.000     .2456543     .428641
+                    2017  |   .4643868   .0522741     8.88   0.000     .3616914    .5670822
+                          |
+           INS_dummy#wave |
+                  1 2008  |   -.778885   .2322188    -3.35   0.001    -1.235091   -.3226785
+                  1 2010  |   -.647378   .2126888    -3.04   0.002    -1.065217   -.2295394
+                  1 2011  |  -.4649128   .2341477    -1.99   0.048    -.9249086   -.0049169
+                  1 2013  |  -.6416357   .2539913    -2.53   0.012    -1.140615   -.1426561
+                  1 2016  |  -.2997674   .2550799    -1.18   0.240    -.8008856    .2013509
+                  1 2017  |   -.241214   .2352624    -1.03   0.306    -.7033997    .2209718
+                          |
+          THAI_dummy#wave |
+                  1 2008  |  -1.404037   .0312654   -44.91   0.000     -1.46546   -1.342614
+                  1 2010  |   .0062333   .0396365     0.16   0.875    -.0716348    .0841014
+                  1 2011  |   .5425792   .0576471     9.41   0.000     .4293283    .6558301
+                  1 2013  |   .5566546   .0606764     9.17   0.000     .4374525    .6758566
+                  1 2016  |   .3942716   .0352025    11.20   0.000     .3251144    .4634288
+                  1 2017  |   .4085509   .0361423    11.30   0.000     .3375473    .4795544
+                          |
+INS_dummy#THAI_dummy#wave |
+                1 1 2008  |   1.571146   .2828392     5.55   0.000     1.015493    2.126798
+                1 1 2010  |   1.043652   .2625746     3.97   0.000     .5278096    1.559494
+                1 1 2011  |   .6582442   .3097877     2.12   0.034     .0496494    1.266839
+                1 1 2013  |    .885803    .300304     2.95   0.003     .2958396    1.475766
+                1 1 2016  |   .9131002   .3142846     2.91   0.004     .2956711    1.530529
+                1 1 2017  |   .9079342   .3012871     3.01   0.003     .3160393    1.499829
+                          |
+                 age_head |     .00274    .004149     0.66   0.509    -.0054109    .0108908
+                 SEX_HEAD |   -.026077   .0901109    -0.29   0.772    -.2031048    .1509507
+                  HH_SIZE |   .0842982   .0062421    13.50   0.000     .0720352    .0965611
+             Health_shock |   .0221314   .0201525     1.10   0.273    -.0174593    .0617221
+                    _cons |   6.905728   .1832505    37.68   0.000     6.545722    7.265733
+-------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+-----------------------------------------------------+
+
+. 
+. * Tính toán Tác động Biên (Marginal Effects) của BHYT cho từng nước qua các năm
+. quietly margins THAI_dummy, dydx(INS_dummy) over(wave THAI_dummy)
+factor THAI_dummy not allowed in over() option if it is specified as a margin
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ==============================================================================
+. * FILE: TVSEP_Panel_Analysis_Final.do
+. * DATA: TVSEP_Panel_Clean_CPI_Labelled.dta
+. * MỤC TIÊU: Đánh giá hiệu ứng bảo vệ của BHYT và Cơ chế Vượt tuyến (VN vs THA)
+. * ==============================================================================
+. 
+. *-------------------------------------------------------------------------------
+. * THIẾT LẬP MÔI TRƯỜNG LÀM VIỆC
+. *-------------------------------------------------------------------------------
+. clear all
+
+. set more off
+
+. set linesize 120
+
+. capture log close

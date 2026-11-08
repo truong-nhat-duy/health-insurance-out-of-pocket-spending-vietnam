@@ -1,0 +1,682 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De t
+> ai cuoi ky\00. FILE LOG-DO-DATABASE 01\bhyt_oop_2024.log
+  log type:  text
+ opened on:  24 Feb 2026, 06:14:52
+
+. 
+. * Directory
+. local dir `c(pwd)'
+
+. cd "`dir'"
+D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai cuoi ky\00
+> . FILE LOG-DO-DATABASE 01
+
+. 
+. ********************************************************************************
+. * BƯỚC 1: LÀM SẠCH VÀ CHUẨN BỊ DỮ LIỆU TỪNG FILE
+. ********************************************************************************
+. 
+. * --- 1. FILE HỘ GIA ĐÌNH ---
+. use "Ho_ThongTinHo.dta", clear
+
+. rename *, lower
+  (all newnames==oldnames)
+
+. rename idho IDHO
+
+. 
+. * Biến Nông thôn (1=Nông thôn, 0=Thành thị)
+. gen RURAL = (ttnt == 2) 
+
+. 
+. * Thu nhập bình quân (Đổi từ Nghìn đồng -> Triệu đồng -> Lấy Log)
+. gen INC_HH_MIL = tongthu / 1000 
+
+. gen INC_PC_MIL = INC_HH_MIL / tsnguoi
+
+. gen ln_INC = ln(INC_PC_MIL + 1)
+
+. 
+. * Tổng chi OOP hộ (đơn vị: triệu đồng) 
+. gen OOP_HH = m3ct / 1000
+
+. 
+. keep IDHO tinh huyen xa diaban RURAL INC_PC_MIL ln_INC tsnguoi OOP_HH
+
+. save "b1_household.dta", replace
+file b1_household.dta saved
+
+. 
+. * --- 2. FILE NHÂN KHẨU & BHYT ---
+. use "Ho_ThanhVien.dta", clear
+
+. rename *, lower
+  (all newnames==oldnames)
+
+. rename idho IDHO
+
+. 
+. * Xác định chủ hộ và đặc điểm chủ hộ
+. gen IS_HEAD = (m1a_c3 == 1) // m1a_c3 là quan hệ với chủ hộ
+
+. gen AGE_VAL = m1a_c5 if IS_HEAD == 1 // m1a_c5 là tuổi
+(120,909 missing values generated)
+
+. gen SEX_VAL = m1a_c2 if IS_HEAD == 1 // m1a_c2 là giới tính
+(120,909 missing values generated)
+
+. 
+. bys IDHO: egen AGE_HEAD = max(AGE_VAL)
+
+. bys IDHO: egen SEX_HEAD = max(SEX_VAL)
+
+. bys IDHO: gen HH_SIZE = _N
+
+. 
+. * Biến BHYT (Theo bạn xác nhận là m3a_c7)
+. gen HAS_BHYT = (m3a_c7 == 1)
+
+. bys IDHO: egen BHYT_RATE = mean(HAS_BHYT)
+
+. 
+. * Giữ 1 dòng đại diện cho mỗi hộ
+. bys IDHO: keep if _n == 1
+(120,909 observations deleted)
+
+. keep IDHO AGE_HEAD SEX_HEAD HH_SIZE BHYT_RATE
+
+. save "b2_demog.dta", replace
+file b2_demog.dta saved
+
+. 
+. * --- 3. FILE CHI PHÍ Y TẾ VÀ HÀNH VI KHÁM BỆNH ---
+. use "Ho_Muc3A.dta", clear
+
+. rename *, lower
+
+. rename idho IDHO
+
+. 
+. * Phân loại tuyến khám
+. gen tuyen = .
+(68,402 missing values generated)
+
+. replace tuyen = 1 if inlist(m3a_c3ma,1,2,3)       // Xã/Huyện
+(10,972 real changes made)
+
+. replace tuyen = 2 if inlist(m3a_c3ma,4,5,6)       // Tỉnh/TW
+(37,110 real changes made)
+
+. replace tuyen = 3 if inlist(m3a_c3ma,7,8)         // Tư nhân
+(6,249 real changes made)
+
+. replace tuyen = 4 if inlist(m3a_c3ma,9,10,11,12,13) // Mua thuốc/Tự điều trị
+(14,068 real changes made)
+
+. 
+. * Biến sử dụng thẻ BHYT (nếu có m3a_c4)
+. gen su_dung_bhyt = (m3a_c4 == 1)
+
+. 
+. * Biến vượt tuyến cá nhân (chỉ dựa vào tuyến khám, chưa lọc BHYT hộ/RURAL)
+. gen vuot_tuyen_ind = inlist(tuyen,2,3)
+
+. 
+. * Tổng hợp lên cấp hộ
+. bys IDHO: egen so_ca_kham = count(idtv)
+
+. bys IDHO: egen so_ca_vuot = total(vuot_tuyen_ind)
+
+. bys IDHO: egen hh_vuot_tuyen = max(vuot_tuyen_ind)
+
+. gen tyle_vuot = so_ca_vuot / so_ca_kham
+
+. 
+. * Giữ 1 dòng mỗi hộ
+. bys IDHO: keep if _n == 1
+(35,054 observations deleted)
+
+. keep IDHO hh_vuot_tuyen so_ca_kham so_ca_vuot tyle_vuot
+
+. save "b3_oop.dta", replace
+file b3_oop.dta saved
+
+. 
+. ********************************************************************************
+. * BƯỚC 2: GHÉP NỐI VÀ TẠO CÁC BIẾN KINH TẾ LƯỢNG (MERGE & FEATURE ENGINEERING)
+. ********************************************************************************
+. use "b1_household.dta", clear
+
+. 
+. * Ghép Nhân khẩu
+. merge 1:1 IDHO using "b2_demog.dta", keep(3) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            46,995  
+    -----------------------------------------
+
+. 
+. * Ghép Hành vi khám bệnh (File 3)
+. merge 1:1 IDHO using "b3_oop.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                        37,343
+        from master                    25,495  (_merge==1)
+        from using                     11,848  (_merge==2)
+
+    Matched                            21,500  (_merge==3)
+    -----------------------------------------
+
+. 
+. * Hộ không có ai ốm đi khám (merge = 1) -> Khỏe mạnh, gán các biến = 0
+. replace hh_vuot_tuyen = 0 if _merge == 1
+(25,495 real changes made)
+
+. replace so_ca_kham = 0 if _merge == 1
+(25,495 real changes made)
+
+. replace so_ca_vuot = 0 if _merge == 1
+(25,495 real changes made)
+
+. replace tyle_vuot = 0 if _merge == 1
+(25,495 real changes made)
+
+. drop _merge
+
+. 
+. * Ghép trọng số
+. merge m:1 tinh huyen xa diaban using "weight2024_ver2.dta", keep(3) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                            46,995  
+    -----------------------------------------
+
+. 
+. * --- 1. TẠO BIẾN CÔNG CỤ (LEAVE-ONE-OUT MEAN) ---
+. bys tinh huyen xa: egen sum_ins = total(BHYT_RATE)
+
+. bys tinh huyen xa: gen count_hh = _N
+
+. gen IV_COMMUNE = (sum_ins - BHYT_RATE) / (count_hh - 1)
+
+. * Sửa lỗi xã có 1 mẫu (giữ nguyên tỷ lệ của hộ đó để tránh missing data)
+. replace IV_COMMUNE = BHYT_RATE if count_hh == 1 
+(0 real changes made)
+
+. 
+. * --- 2. TẠO CÁC BIẾN DUMMY & LOG ---
+. * Dummy BHYT cấp hộ (Được xem là có BHYT nếu > 0 thành viên có thẻ)
+. gen INS_DUMMY = (BHYT_RATE > 0)
+
+. 
+. * Biến Log chi phí y tế
+. gen ln_OOP = ln(OOP_HH + 1)
+
+. 
+. * Hộ nông thôn có BHYT và CÓ vượt tuyến (Biến tương tác sâu)
+. gen rural_vuot = (RURAL == 1 & INS_DUMMY == 1 & hh_vuot_tuyen == 1)
+
+. 
+. * --- 3. GÁN NHÃN CHO DATA (LABELING) ---
+. label var OOP_HH "Chi OOP (Triệu VND)"
+
+. label var ln_OOP "Log(Chi OOP + 1)"
+
+. label var INS_DUMMY "Có BHYT (Hộ)"
+
+. label var RURAL "Nông thôn"
+
+. label var ln_INC "Log(Thu nhập)"
+
+. label var AGE_HEAD "Tuổi chủ hộ"
+
+. label var SEX_HEAD "Giới tính chủ hộ (1=Nam)"
+
+. label var HH_SIZE "Quy mô hộ"
+
+. label var IV_COMMUNE "Tỷ lệ BHYT xã (IV)"
+
+. label var hh_vuot_tuyen "Hộ có vượt tuyến (Dummy)"
+
+. label var rural_vuot "Nông thôn + BHYT + Vượt tuyến"
+
+. 
+. * LƯU BỘ DỮ LIỆU MASTER HOÀN CHỈNH
+. save "VHLSS24_Master_Analysis.dta", replace
+file VHLSS24_Master_Analysis.dta saved
+
+. 
+. ********************************************************************************
+. * BƯỚC 3: THỐNG KÊ MÔ TẢ NHANH VÀ TRỰC QUAN HÓA (ENGLISH VERSION)
+. ********************************************************************************
+. display ">>> DATA CLEANING COMPLETED. RUNNING DESCRIPTIVE STATISTICS <<<"
+>>> DATA CLEANING COMPLETED. RUNNING DESCRIPTIVE STATISTICS <<<
+
+. 
+. use "VHLSS24_Master_Analysis.dta", clear
+
+. 
+. * --- GẮN LẠI NHÃN TIẾNG ANH CHO CÁC BIẾN CHÍNH (Để xuất ra LaTeX chuẩn) ---
+. label var OOP_HH "OOP Expenditure (Million VND)"
+
+. label var ln_OOP "Log(OOP Expenditure + 1)"
+
+. label var INS_DUMMY "Health Insurance Coverage"
+
+. label var RURAL "Rural Area"
+
+. label var ln_INC "Log(Income per capita)"
+
+. label var AGE_HEAD "Age of Household Head"
+
+. label var SEX_HEAD "Male Household Head"
+
+. label var HH_SIZE "Household Size"
+
+. label var IV_COMMUNE "Commune-level HI Rate (IV)"
+
+. label var hh_vuot_tuyen "Bypassed Primary Care"
+
+. label var rural_vuot "Rural + Insured + Bypassed"
+
+. 
+. * ------------------------------------------------------------------------------
+. * 0. THIẾT LẬP BIẾN TOÀN CỤC & ĐƯỜNG DẪN
+. * ------------------------------------------------------------------------------
+. global Y "OOP_HH"
+
+. global X "ln_INC AGE_HEAD SEX_HEAD HH_SIZE"
+
+. global TREAT "INS_DUMMY"
+
+. global IV "IV_COMMUNE"
+
+. 
+. * Thiết lập đường dẫn xuất bảng và hình (Hãy giữ nguyên đường dẫn của bạn)
+. global outpath "D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02.
+>  De tai cuoi ky\01. Bai viet LAtex\figures"
+
+. cap mkdir "$outpath"
+
+. 
+. * Thiết lập trọng số mẫu
+. svyset [pw=wt9], strata(tinh) psu(diaban)
+
+Sampling weights: wt9
+             VCE: linearized
+     Single unit: missing
+        Strata 1: tinh
+ Sampling unit 1: diaban
+           FPC 1: <zero>
+
+. 
+. * Cài đặt package (Có thêm capture để bỏ qua nếu rớt mạng nhưng đã cài rồi)
+. capture which estout
+
+. if _rc cap ssc install estout
+
+. capture which collin
+
+. if _rc cap ssc install collin
+
+. 
+. ********************************************************************************
+. * 1. THỐNG KÊ MÔ TẢ & TRỰC QUAN HÓA (DESCRIPTIVE STATISTICS)
+. ********************************************************************************
+. display ">>> 1. RUNNING DESCRIPTIVE STATISTICS <<<"
+>>> 1. RUNNING DESCRIPTIVE STATISTICS <<<
+
+. 
+. * Bảng 1: Thống kê chung và So sánh theo nhóm BHYT
+. estpost tabstat $Y $TREAT $X RURAL hh_vuot_tuyen rural_vuot, ///
+>     by($TREAT) statistics(mean sd min max) columns(statistics)
+
+Summary statistics: mean sd min max
+     for variables: OOP_HH INS_DUMMY ln_INC AGE_HEAD SEX_HEAD HH_SIZE RURAL hh_vuot_tuyen rural_vuot
+  by categories of: INS_DUMMY
+
+   INS_DUMMY |   e(mean)      e(sd)     e(min)     e(max) 
+-------------+--------------------------------------------
+0            |                                            
+      OOP_HH |  1.580666   5.956938          0    123.265 
+   INS_DUMMY |         0          0          0          0 
+      ln_INC |  4.201099   .7676565   1.825114   7.038001 
+    AGE_HEAD |   51.6035   11.91663         17         79 
+    SEX_HEAD |  1.328717   .4699182          1          2 
+     HH_SIZE |  2.254373   1.231789          1          8 
+       RURAL |  .6049563   .4890383          0          1 
+hh_vuot_tu~n |  .1268222    .332895          0          1 
+  rural_vuot |         0          0          0          0 
+-------------+--------------------------------------------
+1            |                                            
+      OOP_HH |   5.70108   13.28288          0        660 
+   INS_DUMMY |         1          0          1          1 
+      ln_INC |  4.077324   .7681822    .696641    11.1491 
+    AGE_HEAD |  54.05885   13.52247         10        106 
+    SEX_HEAD |  1.282445   .4501937          1          2 
+     HH_SIZE |  3.612454   1.658248          1         16 
+       RURAL |  .6613989   .4732392          0          1 
+hh_vuot_tu~n |   .369397   .4826468          0          1 
+  rural_vuot |  .2319006   .4220505          0          1 
+-------------+--------------------------------------------
+Total        |                                            
+      OOP_HH |  5.580786   13.14536          0        660 
+   INS_DUMMY |  .9708054   .1683534          0          1 
+      ln_INC |  4.080938   .7684413    .696641    11.1491 
+    AGE_HEAD |  53.98717   13.48452         10        106 
+    SEX_HEAD |  1.283796   .4508439          1          2 
+     HH_SIZE |  3.572806   1.663144          1         16 
+       RURAL |   .659751   .4737978          0          1 
+hh_vuot_tu~n |  .3623151   .4806743          0          1 
+  rural_vuot |  .2251303   .4176726          0          1 
+
+. 
+. * Xuất bảng ra LaTeX (Có label tiếng Anh, bỏ Title cứng để dùng caption trong Latex)
+. esttab using "$outpath\Summary_Stats.tex", replace main(mean) aux(sd) nostar unstack ///
+>     label nomtitle nonumber ///
+>     note("Note: Standard deviations are reported in parentheses.")
+(output written to D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02
+> . De tai cuoi ky\01. Bai viet LAtex\figures\Summary_Stats.tex)
+
+. 
+. * Biểu đồ 1: Phân phối chi phí y tế (Bỏ title cứng, chuẩn hóa label)
+. histogram OOP_HH if OOP_HH < 50, percent normal ///
+>     xtitle("Million VND/year") ytitle("Percentage (%)") ///
+>     graphregion(color(white)) // Background trắng chuẩn bài viết
+(bin=46, start=0, width=1.086587)
+
+. graph export "$outpath\hist_oop.png", replace as(png) width(1200)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\hist_oop.png saved as PNG format
+
+. 
+. * Biểu đồ 2: Kernel density của Log OOP theo nhóm BHYT
+. twoway (kdensity ln_OOP if INS_DUMMY==1, lcolor(navy) lwidth(medthick)) ///
+>        (kdensity ln_OOP if INS_DUMMY==0, lcolor(maroon) lpattern(dash) lwidth(medthick)), ///
+>        legend(label(1 "Insured") label(2 "Uninsured") position(6) rows(1)) ///
+>        xtitle("Log(OOP Expenditure + 1)") ytitle("Density") ///
+>        graphregion(color(white))
+
+. graph export "$outpath\kdensity_lnoop.png", replace as(png) width(1200)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\kdensity_lnoop.png saved as PNG format
+
+. 
+. * Biểu đồ 3: Boxplot so sánh OOP theo tình trạng vượt tuyến (nếu cần)
+. graph box OOP_HH if OOP_HH < 100, over(rural_vuot) ///
+>     ytitle("Million VND/year") ///
+>     graphregion(color(white))
+
+. graph export "$outpath\box_OOP_rural_vuot.png", replace as(png) width(1200)
+(file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\box_OOP_rural_vuot.png not found)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\box_OOP_rural_vuot.png saved as PNG format
+
+. 
+. 
+. ********************************************************************************
+. * 2. MÔ HÌNH BASELINE VÀ KIỂM ĐỊNH (OLS DIAGNOSTICS)
+. ********************************************************************************
+. display ">>> 2. RUNNING OLS & MODEL DIAGNOSTICS <<<"
+>>> 2. RUNNING OLS & MODEL DIAGNOSTICS <<<
+
+. 
+. * A. Chạy OLS ẨN để lấy các kiểm định kỹ thuật
+. quietly reg $Y $TREAT RURAL $X
+
+. vif                    // Multicollinearity
+
+    Variable |       VIF       1/VIF  
+-------------+----------------------
+     HH_SIZE |      1.12    0.889296
+      ln_INC |      1.10    0.906389
+    SEX_HEAD |      1.08    0.922057
+       RURAL |      1.08    0.923490
+    AGE_HEAD |      1.06    0.941161
+   INS_DUMMY |      1.02    0.977735
+-------------+----------------------
+    Mean VIF |      1.08
+
+. estat hettest          // Breusch-Pagan test for heteroskedasticity
+
+Breusch–Pagan/Cook–Weisberg test for heteroskedasticity 
+Assumption: Normal error terms
+Variable: Fitted values of OOP_HH
+
+H0: Constant variance
+
+    chi2(1) = 9365.60
+Prob > chi2 =  0.0000
+
+. quietly estat imtest, white // White test
+
+. estat ovtest           // Ramsey RESET test
+
+Ramsey RESET test for omitted variables
+Omitted: Powers of fitted values of OOP_HH
+
+H0: Model has no omitted variables
+
+F(3, 46985) =  11.99
+   Prob > F = 0.0000
+
+. 
+. * B. Chạy OLS CHÍNH THỨC (Có trọng số và sai số chuẩn cụm)
+. reg $Y $TREAT RURAL c.$TREAT#c.RURAL $X i.tinh [pw=wt9], vce(cluster tinh)
+(sum of wgt is 143,361,540)
+
+Linear regression                               Number of obs     =     46,995
+                                                F(6, 62)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.0424
+                                                Root MSE          =     12.769
+
+                                         (Std. err. adjusted for 63 clusters in tinh)
+-------------------------------------------------------------------------------------
+                    |               Robust
+             OOP_HH | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+          INS_DUMMY |    2.96489   .2947874    10.06   0.000     2.375618    3.554162
+              RURAL |   .0188832   .3261072     0.06   0.954    -.6329959    .6707623
+                    |
+c.INS_DUMMY#c.RURAL |  -.5156495   .3014257    -1.71   0.092    -1.118191     .086892
+                    |
+             ln_INC |   1.678332   .1352617    12.41   0.000     1.407947    1.948716
+           AGE_HEAD |   .0832502   .0086717     9.60   0.000     .0659157    .1005848
+           SEX_HEAD |  -.0255676    .181099    -0.14   0.888    -.3875794    .3364442
+            HH_SIZE |    1.07195   .0822379    13.03   0.000     .9075583    1.236341
+                    |
+               tinh |
+                 2  |  -3.698866   .1921311   -19.25   0.000     -4.08293   -3.314801
+                 4  |  -1.470867   .1928457    -7.63   0.000     -1.85636   -1.085374
+                 6  |  -1.870931   .1994218    -9.38   0.000    -2.269569   -1.472293
+                 8  |   .3907314   .1559011     2.51   0.015     .0790896    .7023733
+                10  |  -2.752111   .1609028   -17.10   0.000    -3.073751   -2.430471
+                11  |  -3.805048   .1825489   -20.84   0.000    -4.169958   -3.440138
+                12  |   -2.76525   .2105754   -13.13   0.000    -3.186184   -2.344316
+                14  |  -.7610258   .1787835    -4.26   0.000    -1.118409   -.4036427
+                15  |   1.442235   .1528881     9.43   0.000     1.136616    1.747854
+                17  |  -1.259868   .1343799    -9.38   0.000     -1.52849   -.9912468
+                19  |  -2.088246   .0661144   -31.59   0.000    -2.220407   -1.956085
+                20  |  -2.780815   .1645784   -16.90   0.000    -3.109802   -2.451827
+                22  |  -2.353267   .0649515   -36.23   0.000    -2.483103   -2.223431
+                24  |  -2.114195   .0883579   -23.93   0.000     -2.29082    -1.93757
+                25  |   .7113741   .1101372     6.46   0.000      .491213    .9315352
+                26  |   .5014855    .053468     9.38   0.000     .3946045    .6083666
+                27  |  -.0700276   .0797358    -0.88   0.383    -.2294173     .089362
+                30  |  -.9330418   .0923766   -10.10   0.000      -1.1177   -.7483836
+                31  |   3.096989     .03965    78.11   0.000      3.01773    3.176248
+                33  |   1.790035   .1087521    16.46   0.000     1.572642    2.007427
+                34  |   -3.05102   .1496746   -20.38   0.000    -3.350215   -2.751825
+                35  |  -.7145396   .1014813    -7.04   0.000    -.9173979   -.5116813
+                36  |  -1.180812   .1316135    -8.97   0.000    -1.443903     -.91772
+                37  |  -.5186571   .0842949    -6.15   0.000    -.6871603    -.350154
+                38  |   -2.29126   .0908111   -25.23   0.000    -2.472789   -2.109732
+                40  |   -1.57882   .1330058   -11.87   0.000    -1.844695   -1.312945
+                42  |   1.206459   .1391632     8.67   0.000     .9282761    1.484643
+                44  |  -1.823386    .123796   -14.73   0.000    -2.070851   -1.575921
+                45  |   .1001149   .1059687     0.94   0.348    -.1117135    .3119432
+                46  |   -1.85648   .0529202   -35.08   0.000    -1.962266   -1.750694
+                48  |  -.2428669   .1035571    -2.35   0.022    -.4498747   -.0358592
+                49  |  -1.492975   .1056919   -14.13   0.000     -1.70425     -1.2817
+                51  |   .6401144   .1338248     4.78   0.000     .3726025    .9076263
+                52  |   -1.87885   .0855016   -21.97   0.000    -2.049765   -1.707935
+                54  |   .9848299   .1413568     6.97   0.000     .7022617    1.267398
+                56  |  -2.092929   .0856083   -24.45   0.000    -2.264057     -1.9218
+                58  |  -.3625511   .1165598    -3.11   0.003    -.5955508   -.1295513
+                60  |  -1.844614   .0805232   -22.91   0.000    -2.005577    -1.68365
+                62  |   -4.06872   .1526558   -26.65   0.000    -4.373874   -3.763565
+                64  |  -2.636951   .1415683   -18.63   0.000    -2.919942    -2.35396
+                66  |  -.2129539   .1345307    -1.58   0.119    -.4818768    .0559691
+                67  |   .1481319   .1542368     0.96   0.341    -.1601831    .4564469
+                68  |  -1.879805   .0669842   -28.06   0.000    -2.013705   -1.745906
+                70  |  -2.074514   .1024549   -20.25   0.000    -2.279318   -1.869709
+                72  |  -.1479988   .0815061    -1.82   0.074    -.3109273    .0149296
+                74  |  -1.846774   .1178707   -15.67   0.000    -2.082395   -1.611154
+                75  |  -2.306832   .0562999   -40.97   0.000    -2.419374    -2.19429
+                77  |  -3.127933   .0733084   -42.67   0.000    -3.274474   -2.981392
+                79  |  -2.481851   .0662687   -37.45   0.000     -2.61432   -2.349382
+                80  |   .0759704   .1198907     0.63   0.529    -.1636878    .3156285
+                82  |   .1609537   .1207474     1.33   0.187    -.0804168    .4023243
+                83  |  -1.650331   .1332285   -12.39   0.000    -1.916651   -1.384011
+                84  |   .5376033   .1396248     3.85   0.000     .2584973    .8167093
+                86  |    .112346   .1315549     0.85   0.396    -.1506286    .3753205
+                87  |  -1.868979   .0921729   -20.28   0.000     -2.05323   -1.684728
+                89  |  -1.777173   .0713889   -24.89   0.000    -1.919878   -1.634469
+                91  |  -.9503109   .0684882   -13.88   0.000    -1.087217   -.8134049
+                92  |  -1.784642   .0612715   -29.13   0.000    -1.907122   -1.662162
+                93  |   -.328993   .0994067    -3.31   0.002    -.5277042   -.1302819
+                94  |  -2.504068   .0848296   -29.52   0.000     -2.67364   -2.334496
+                95  |  -2.526149   .0697176   -36.23   0.000    -2.665512   -2.386786
+                96  |   -.018125   .1029652    -0.18   0.861    -.2239494    .1876994
+                    |
+              _cons |  -11.02801   1.441878    -7.65   0.000    -13.91028   -8.145735
+-------------------------------------------------------------------------------------
+
+. estimates store OLS_BASE
+
+. 
+. * C. Chạy OLS với Log(Y)
+. reg ln_OOP $TREAT RURAL c.$TREAT#c.RURAL $X i.tinh [pw=wt9], vce(cluster tinh)
+(sum of wgt is 143,361,540)
+
+Linear regression                               Number of obs     =     46,995
+                                                F(6, 62)          =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.1980
+                                                Root MSE          =     .74535
+
+                                         (Std. err. adjusted for 63 clusters in tinh)
+-------------------------------------------------------------------------------------
+                    |               Robust
+             ln_OOP | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+          INS_DUMMY |   .7293508   .0431007    16.92   0.000     .6431938    .8155078
+              RURAL |  -.0067243   .0489564    -0.14   0.891    -.1045867    .0911382
+                    |
+c.INS_DUMMY#c.RURAL |  -.0677608   .0478947    -1.41   0.162    -.1635009    .0279793
+                    |
+             ln_INC |   .1650415   .0166526     9.91   0.000     .1317535    .1983295
+           AGE_HEAD |   .0082997   .0003792    21.89   0.000     .0075418    .0090576
+           SEX_HEAD |  -.0313845   .0106914    -2.94   0.005    -.0527563   -.0100127
+            HH_SIZE |   .1565209    .007822    20.01   0.000     .1408851    .1721568
+                    |
+               tinh |
+                 2  |  -.9281322     .02066   -44.92   0.000    -.9694309   -.8868335
+                 4  |  -.5660118   .0156133   -36.25   0.000    -.5972223   -.5348013
+                 6  |  -.5984931   .0165618   -36.14   0.000    -.6315996   -.5653866
+                 8  |  -.3194098    .010996   -29.05   0.000    -.3413904   -.2974292
+                10  |  -.5543513   .0135912   -40.79   0.000    -.5815197    -.527183
+                11  |  -.8076033   .0189752   -42.56   0.000    -.8455343   -.7696723
+                12  |  -.8383389   .0208397   -40.23   0.000     -.879997   -.7966809
+                14  |   -.263137   .0172204   -15.28   0.000    -.2975601   -.2287139
+                15  |   .0512202   .0110182     4.65   0.000     .0291951    .0732453
+                17  |  -.2577298   .0106132   -24.28   0.000    -.2789453   -.2365144
+                19  |   -.340535   .0043503   -78.28   0.000    -.3492312   -.3318388
+                20  |  -.5852644   .0129594   -45.16   0.000    -.6111698    -.559359
+                22  |  -.3627449   .0056263   -64.47   0.000    -.3739918    -.351498
+                24  |  -.2476634   .0074189   -33.38   0.000    -.2624936   -.2328331
+                25  |  -.0480978   .0085904    -5.60   0.000    -.0652697   -.0309259
+                26  |   .0058786   .0047215     1.25   0.218    -.0035595    .0153166
+                27  |  -.0701344   .0039876   -17.59   0.000    -.0781055   -.0621632
+                30  |  -.0857117   .0061768   -13.88   0.000    -.0980589   -.0733646
+                31  |    .215786   .0027331    78.95   0.000     .2103226    .2212495
+                33  |   .0960505   .0085478    11.24   0.000     .0789637    .1131373
+                34  |  -.2687126   .0113255   -23.73   0.000    -.2913519   -.2460733
+                35  |  -.1192913   .0076015   -15.69   0.000    -.1344864   -.1040961
+                36  |  -.1017092   .0099282   -10.24   0.000    -.1215554    -.081863
+                37  |    .030419   .0067349     4.52   0.000      .016956     .043882
+                38  |  -.2272525   .0069466   -32.71   0.000    -.2411386   -.2133664
+                40  |  -.1564127    .010202   -15.33   0.000    -.1768062   -.1360193
+                42  |  -.0685654   .0095314    -7.19   0.000    -.0876185   -.0495124
+                44  |  -.2439064   .0096092   -25.38   0.000     -.263115   -.2246979
+                45  |  -.1142143   .0102734   -11.12   0.000    -.1347505   -.0936781
+                46  |  -.1268146   .0053241   -23.82   0.000    -.1374574   -.1161718
+                48  |   .0376713   .0093057     4.05   0.000     .0190695    .0562731
+                49  |  -.1154982   .0087079   -13.26   0.000     -.132905   -.0980914
+                51  |  -.0139418    .009649    -1.44   0.154    -.0332299    .0053463
+                52  |  -.1589923   .0050484   -31.49   0.000    -.1690839   -.1489007
+                54  |   .0329415   .0090283     3.65   0.001     .0148942    .0509887
+                56  |   -.246279   .0068505   -35.95   0.000    -.2599729   -.2325851
+                58  |  -.1887695   .0112837   -16.73   0.000    -.2113253   -.1662138
+                60  |  -.1970073   .0043344   -45.45   0.000    -.2056717    -.188343
+                62  |  -.7309131   .0119898   -60.96   0.000    -.7548803   -.7069459
+                64  |   -.424254   .0147351   -28.79   0.000    -.4537092   -.3947989
+                66  |  -.1269866   .0107002   -11.87   0.000     -.148376   -.1055971
+                67  |  -.1864687   .0119847   -15.56   0.000    -.2104257   -.1625117
+                68  |  -.2346754   .0044997   -52.15   0.000    -.2436702   -.2256805
+                70  |  -.1975462   .0062792   -31.46   0.000    -.2100981   -.1849942
+                72  |  -.0279718    .004643    -6.02   0.000    -.0372529   -.0186906
+                74  |  -.2981849   .0105042   -28.39   0.000    -.3191824   -.2771874
+                75  |  -.2362197   .0035611   -66.33   0.000    -.2433382   -.2291012
+                77  |  -.3074085   .0038436   -79.98   0.000    -.3150917   -.2997253
+                79  |  -.1435685   .0073472   -19.54   0.000    -.1582554   -.1288816
+                80  |  -.0341547   .0081528    -4.19   0.000    -.0504519   -.0178575
+                82  |  -.0178433   .0084256    -2.12   0.038    -.0346859   -.0010008
+                83  |  -.1662119   .0094816   -17.53   0.000    -.1851654   -.1472585
+                84  |  -.0819565   .0103354    -7.93   0.000    -.1026166   -.0612964
+                86  |   .0478902   .0092707     5.17   0.000     .0293584     .066422
+                87  |  -.1196774   .0073074   -16.38   0.000    -.1342847     -.10507
+                89  |  -.2222142   .0067207   -33.06   0.000    -.2356487   -.2087798
+                91  |  -.1152565     .00602   -19.15   0.000    -.1272903   -.1032227
+                92  |  -.1819165   .0068125   -26.70   0.000    -.1955344   -.1682986
+                93  |  -.1103543   .0065657   -16.81   0.000    -.1234789   -.0972297
+                94  |  -.4626541   .0071243   -64.94   0.000    -.4768953   -.4484129
+                95  |  -.1975825   .0063816   -30.96   0.000    -.2103391   -.1848258
+                96  |  -.0566392   .0085628    -6.61   0.000     -.073756   -.0395225
+                    |
+              _cons |  -.7290396   .0769359    -9.48   0.000    -.8828323   -.5752469
+-------------------------------------------------------------------------------------
+
+. estimates store OLS_LOG
+
+. 
+. * Xuất kết quả OLS ra file LaTeX
+. esttab OLS_BASE OLS_LOG using "$outpath\OLS_Results.tex", replace ///
+>     label b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     keep($TREAT RURAL c.$TREAT#c.RURAL $X) ///
+>     indicate("Province FE = *tinh") ///
+>     note("Robust standard errors clustered at the province level in parentheses.")
+(file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LAtex\figures\OLS_Results.tex not found)
+(output written to D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02
+> . De tai cuoi ky\01. Bai viet LAtex\figures\OLS_Results.tex)
+
+.         
+. *  KẾT THÚC
+. *******************************************************
+. log close
+      name:  <unnamed>
+       log:  D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De t
+> ai cuoi ky\00. FILE LOG-DO-DATABASE 01\bhyt_oop_2024.log
+  log type:  text
+ closed on:  24 Feb 2026, 06:15:23
+------------------------------------------------------------------------------------------------------------------------

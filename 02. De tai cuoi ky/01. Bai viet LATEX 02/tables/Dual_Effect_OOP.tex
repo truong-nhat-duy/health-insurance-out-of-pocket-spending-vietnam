@@ -1,0 +1,36 @@
+\begin{table}[htbp]\centering
+\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+\caption{Table: The Dual Effect of Health Insurance on Decomposed OOP Expenditures}
+\begin{tabular}{l*{3}{c}}
+\hline\hline
+            &\multicolumn{1}{c}{(1)}&\multicolumn{1}{c}{(2)}&\multicolumn{1}{c}{(3)}\\
+            &\multicolumn{1}{c}{Total OOP}&\multicolumn{1}{c}{Inpatient OOP}&\multicolumn{1}{c}{Outpatient OOP}\\
+\hline
+Health Insurance&       1.256\sym{***}&      -0.219         &       0.292\sym{*}  \\
+            &     (0.177)         &     (0.155)         &     (0.157)         \\
+[1em]
+ins\_rural   &      -0.967\sym{***}&      -0.115         &       0.035         \\
+            &     (0.286)         &     (0.178)         &     (0.137)         \\
+[1em]
+ins\_vuot    &       2.413         &       2.806         &       0.405         \\
+            &     (1.833)         &     (2.172)         &     (1.513)         \\
+[1em]
+Insured x Rural x Bypassed&      -3.533         &      -1.345         &      -2.971\sym{*}  \\
+            &     (2.151)         &     (2.431)         &     (1.707)         \\
+[1em]
+RURAL       &       0.850\sym{***}&       0.083         &      -0.026         \\
+            &     (0.262)         &     (0.155)         &     (0.133)         \\
+[1em]
+hh\_vuot\_tuyen&      -1.648         &      -2.244         &       0.443         \\
+            &     (1.795)         &     (2.092)         &     (1.493)         \\
+[1em]
+Demographic Controls &         Yes         &         Yes         &         Yes         \\
+[1em]
+Province FE &         Yes         &         Yes         &         Yes         \\
+\hline
+\(N\)       &       46995         &       46995         &       46995         \\
+\hline\hline
+\multicolumn{4}{l}{\footnotesize Standard errors in parentheses}\\
+\multicolumn{4}{l}{\footnotesize \sym{*} \(p<0.10\), \sym{**} \(p<0.05\), \sym{***} \(p<0.01\)}\\
+\end{tabular}
+\end{table}

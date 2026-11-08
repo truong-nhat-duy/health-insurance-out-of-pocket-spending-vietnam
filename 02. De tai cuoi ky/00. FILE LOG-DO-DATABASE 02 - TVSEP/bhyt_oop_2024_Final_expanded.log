@@ -1,0 +1,1850 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De t
+> ai cuoi ky\00. FILE LOG-DO-DATABASE 02 - TVSEP\bhyt_oop_2024_Final_expanded.log
+  log type:  text
+ opened on:   5 Mar 2026, 16:53:25
+
+. 
+. * Đặt thư mục làm việc (sửa theo máy của bạn nếu cần)
+. local dir `c(pwd)'
+
+. cd "`dir'"
+D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai cuoi ky\00
+> . FILE LOG-DO-DATABASE 02 - TVSEP
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 0.1 Kiểm tra và cài đặt các gói cần thiết
+. * ------------------------------------------------------------------------------
+. capture which reghdfe
+
+. if _rc {
+.     display "Installing reghdfe and dependencies..."
+.     ssc install ftools, replace
+.     ssc install reghdfe, replace
+.     ssc install boottest, replace
+.     ssc install require, replace
+. }
+
+. 
+. capture which esttab
+
+. if _rc {
+.     display "Installing estout (esttab)..."
+.     ssc install estout, replace
+. }
+
+. 
+. capture which coefplot
+
+. if _rc {
+.     display "Installing coefplot..."
+.     ssc install coefplot, replace
+. }
+
+. 
+. * rifhdreg không có sẵn trên SSC phổ biến; chúng ta sẽ cung cấp 2 lựa chọn:
+. * 1) dùng qreg (conditional quantile)
+. * 2) tự tạo biến RIF trong Stata (approximate) và chạy reghdfe trên rif_q90
+. * (Nếu bạn có rifhdreg từ nguồn khác, có thể thay thế trực tiếp.)
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 1. Load dữ liệu và thiết lập panel
+. * ------------------------------------------------------------------------------
+. use "TVSEP_Panel_Clean_CPI_Labelled.dta", clear
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Tạo ID panel duy nhất
+. egen id_panel = group(hhid country_code)
+variable id_panel already defined
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Gom nhóm biến kiểm soát
+. global X "age_head SEX_HEAD HH_SIZE Health_shock"
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 2. Mô hình 1 - Baseline TWFE (Mean effects)
+. * ------------------------------------------------------------------------------
+. display ">>> RUNNING MODEL 1: BHYT VÀ HIỆU ỨNG BẢO VỆ TỔNG THỂ (TWFE) <<<"
+>>> RUNNING MODEL 1: BHYT VÀ HIỆU ỨNG BẢO VỆ TỔNG THỂ (TWFE) <<<
+
+. 
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   6,    518) =      53.44
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8361
+                                                  Adj R-squared   =     0.8006
+                                                  Within R-sq.    =     0.0220
+Number of clusters (village) =        519         Root MSE        =     0.7333
+
+                              (Std. err. adjusted for 519 clusters in village)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |  -.0770906   .0650143    -1.19   0.236    -.2048148    .0506336
+  INS_x_THAI |   .5543241   .0853306     6.50   0.000     .3866876    .7219607
+    age_head |   .0005059   .0043144     0.12   0.907    -.0079699    .0089818
+    SEX_HEAD |   .0157196   .1016101     0.15   0.877    -.1838989    .2153382
+     HH_SIZE |   .0909693   .0070346    12.93   0.000     .0771494    .1047892
+Health_shock |    .077637   .0215913     3.60   0.000     .0352197    .1200543
+       _cons |   6.270619   .2118797    29.60   0.000      5.85437    6.686868
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m1_baseline
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 3. Mô hình 2 - Mechanism: BYPASSED (Gatekeeping)
+. * ------------------------------------------------------------------------------
+. display ">>> RUNNING MODEL 2: CƠ CHẾ VƯỢT TUYẾN (TWFE) <<<"
+>>> RUNNING MODEL 2: CƠ CHẾ VƯỢT TUYẾN (TWFE) <<<
+
+. 
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   8,    518) =      46.00
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8364
+                                                  Adj R-squared   =     0.8010
+                                                  Within R-sq.    =     0.0239
+Number of clusters (village) =        519         Root MSE        =     0.7327
+
+                               (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------
+              |               Robust
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |  -.0734868    .064887    -1.13   0.258    -.2009607    .0539872
+   INS_x_THAI |   .5455349   .0851591     6.41   0.000     .3782352    .7128345
+     BYPASSED |   .0645448   .0230312     2.80   0.005     .0192988    .1097908
+BYPASS_x_THAI |    .013898   .0300669     0.46   0.644    -.0451702    .0729661
+     age_head |   .0004293    .004295     0.10   0.920    -.0080085    .0088671
+     SEX_HEAD |   .0169514   .1013001     0.17   0.867    -.1820581    .2159609
+      HH_SIZE |   .0903113   .0070046    12.89   0.000     .0765505    .1040722
+ Health_shock |   .0649678   .0212922     3.05   0.002      .023138    .1067975
+        _cons |   6.255969   .2109057    29.66   0.000     5.841633    6.670305
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m2_bypass
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 4A. Mô hình 3 - Conditional Quantile Regression (Q90) bằng qreg
+. * ------------------------------------------------------------------------------
+. display ">>> RUNNING MODEL 3A: CONDITIONAL QUANTILE REGRESSION (Q90) - qreg <<<"
+>>> RUNNING MODEL 3A: CONDITIONAL QUANTILE REGRESSION (Q90) - qreg <<<
+
+. 
+. qreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, quantile(0.9)
+Iteration  1:  WLS sum of weighted deviations =  20235.038
+
+Iteration  1: sum of abs. weighted deviations =  20253.499
+Iteration  2: sum of abs. weighted deviations =  20252.017
+Iteration  3: sum of abs. weighted deviations =  12929.329
+Iteration  4: sum of abs. weighted deviations =  12129.603
+Iteration  5: sum of abs. weighted deviations =  11667.338
+Iteration  6: sum of abs. weighted deviations =  11160.386
+Iteration  7: sum of abs. weighted deviations =  10119.283
+Iteration  8: sum of abs. weighted deviations =   9539.033
+Iteration  9: sum of abs. weighted deviations =  9157.9218
+Iteration 10: sum of abs. weighted deviations =  9012.4723
+Iteration 11: sum of abs. weighted deviations =  8520.3659
+Iteration 12: sum of abs. weighted deviations =  8407.3065
+Iteration 13: sum of abs. weighted deviations =   8187.705
+Iteration 14: sum of abs. weighted deviations =  7729.9313
+Iteration 15: sum of abs. weighted deviations =  7618.3398
+Iteration 16: sum of abs. weighted deviations =  7588.8139
+Iteration 17: sum of abs. weighted deviations =  7563.4965
+Iteration 18: sum of abs. weighted deviations =  7550.0338
+Iteration 19: sum of abs. weighted deviations =  7549.4973
+Iteration 20: sum of abs. weighted deviations =  7549.1799
+Iteration 21: sum of abs. weighted deviations =  7540.4716
+Iteration 22: sum of abs. weighted deviations =  7539.9043
+Iteration 23: sum of abs. weighted deviations =  7537.8086
+Iteration 24: sum of abs. weighted deviations =  7536.8542
+Iteration 25: sum of abs. weighted deviations =  7531.4696
+Iteration 26: sum of abs. weighted deviations =  7531.1984
+Iteration 27: sum of abs. weighted deviations =   7529.493
+Iteration 28: sum of abs. weighted deviations =  7526.5117
+Iteration 29: sum of abs. weighted deviations =  7525.4849
+Iteration 30: sum of abs. weighted deviations =  7525.4301
+Iteration 31: sum of abs. weighted deviations =   7524.924
+Iteration 32: sum of abs. weighted deviations =  7524.4281
+Iteration 33: sum of abs. weighted deviations =  7523.7883
+Iteration 34: sum of abs. weighted deviations =  7523.2009
+Iteration 35: sum of abs. weighted deviations =  7522.4433
+Iteration 36: sum of abs. weighted deviations =  7522.2504
+Iteration 37: sum of abs. weighted deviations =  7522.0935
+Iteration 38: sum of abs. weighted deviations =  7521.8915
+Iteration 39: sum of abs. weighted deviations =  7521.8835
+Iteration 40: sum of abs. weighted deviations =  7521.8788
+Iteration 41: sum of abs. weighted deviations =  7521.7714
+Iteration 42: sum of abs. weighted deviations =  7521.7706
+Iteration 43: sum of abs. weighted deviations =  7521.7686
+Iteration 44: sum of abs. weighted deviations =  7521.7605
+Iteration 45: sum of abs. weighted deviations =  7521.7584
+Iteration 46: sum of abs. weighted deviations =  7521.7522
+Iteration 47: sum of abs. weighted deviations =  7521.7448
+Iteration 48: sum of abs. weighted deviations =  7521.7305
+Iteration 49: sum of abs. weighted deviations =  7521.7277
+Iteration 50: sum of abs. weighted deviations =  7521.7233
+Iteration 51: sum of abs. weighted deviations =  7521.7209
+Iteration 52: sum of abs. weighted deviations =  7521.7192
+Iteration 53: sum of abs. weighted deviations =  7521.7186
+note: alternate solutions exist.
+Iteration 54: sum of abs. weighted deviations =  7521.7185
+Iteration 55: sum of abs. weighted deviations =  7521.7182
+Iteration 56: sum of abs. weighted deviations =  7521.7181
+Iteration 57: sum of abs. weighted deviations =  7521.7181
+Iteration 58: sum of abs. weighted deviations =  7521.7181
+Iteration 59: sum of abs. weighted deviations =  7521.7178
+Iteration 60: sum of abs. weighted deviations =  7521.7177
+Iteration 61: sum of abs. weighted deviations =  7521.7177
+Iteration 62: sum of abs. weighted deviations =  7521.7176
+Iteration 63: sum of abs. weighted deviations =  7521.7176
+
+.9 Quantile regression                              Number of obs =     29,473
+  Raw sum of deviations 8591.401 (about 8.4883907)
+  Min sum of deviations 7521.718                    Pseudo R2     =     0.1245
+
+-------------------------------------------------------------------------------
+  ln_OOP_real | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |    .301333   .0418894     7.19   0.000      .219228     .383438
+   INS_x_THAI |   -.690161   .0517667   -13.33   0.000     -.791626    -.588696
+     BYPASSED |  -.3536063   .0249693   -14.16   0.000    -.4025472   -.3046654
+BYPASS_x_THAI |    .394892   .0350035    11.28   0.000     .3262836    .4635005
+     age_head |   -.001753   .0000174  -100.47   0.000    -.0017872   -.0017188
+     SEX_HEAD |  -.0178278    .024723    -0.72   0.471    -.0662859    .0306304
+      HH_SIZE |   .0568942   .0043091    13.20   0.000     .0484482    .0653403
+ Health_shock |    .142173   .0330814     4.30   0.000     .0773321     .207014
+        _cons |   8.376754   .0254498   329.15   0.000     8.326872    8.426637
+-------------------------------------------------------------------------------
+
+. estimates store m3_qreg90
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 4B. (TÙY CHỌN) Tạo biến RIF cho Q90 trong Stata (approximate) và chạy RIF-TWFE
+. * Ghi chú: ước lượng mật độ f(q) bằng kernel density và lấy giá trị gần nhất
+. * ------------------------------------------------------------------------------
+. display ">>> OPTION: TẠO BIẾN RIF Q90 TRONG STATA (approximate) <<<"
+>>> OPTION: TẠO BIẾN RIF Q90 TRONG STATA (approximate) <<<
+
+. 
+. * Tính giá trị phân vị 90
+. summarize ln_OOP_real, detail
+
+         Log of OOP expenditure (constant price, CPI
+                          adjusted)
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%     2.020792              0       Obs              31,779
+25%      4.48987              0       Sum of wgt.      31,779
+
+50%     6.750131                      Mean           5.925196
+                        Largest       Std. dev.      2.540115
+75%     7.882707       10.14639
+90%     8.497487       10.14639       Variance       6.452186
+95%     8.799699       10.15634       Skewness      -.9639027
+99%     9.423492       10.17595       Kurtosis       3.114706
+
+. local q90 = r(p90)
+
+. display "q90 = " `q90'
+q90 = 8.4974873
+
+. 
+. * Tạo kernel density grid (lưu vào biến tạm)
+. preserve
+
+. keep ln_OOP_real
+
+. kdensity ln_OOP_real, generate(kx ky)
+
+. gen absdiff = abs(kx - `q90')
+(31,729 missing values generated)
+
+. egen minabs = min(absdiff)
+
+. keep if absdiff == minabs
+(31,778 observations deleted)
+
+. * Lấy mật độ tại điểm gần nhất
+. scalar f_q90 = ky[1]
+
+. display "Estimated density at q90 (f_q90) = " scalar(f_q90)
+Estimated density at q90 (f_q90) = .19180641
+
+. restore
+
+. 
+. * Nếu f_q90 quá nhỏ hoặc missing, cảnh báo
+. if scalar(f_q90) <= 0 | missing(scalar(f_q90)) {
+.     display as error "Warning: estimated f_q90 is missing or non-positive. RIF variable will not be created."
+. }
+
+. else {
+.     * Tạo biến RIF theo công thức: RIF(y; q) = q + (tau - 1{y <= q}) / f(q)
+.     gen rif_q90 = `q90' + (0.9 - (ln_OOP_real <= `q90')) / scalar(f_q90)
+. 
+.     * Kiểm tra phân phối rif_q90
+.     summarize rif_q90, detail
+
+                           rif_q90
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%     7.976128       7.976128
+ 5%     7.976128       7.976128
+10%     7.976128       7.976128       Obs              31,779
+25%     7.976128       7.976128       Sum of wgt.      31,779
+
+50%     7.976128                      Mean           8.497339
+                        Largest       Std. dev.      1.563905
+75%     7.976128       13.18972
+90%     7.976128       13.18972       Variance       2.445798
+95%     13.18972       13.18972       Skewness       2.667191
+99%     13.18972       13.18972       Kurtosis       8.113909
+. 
+.     * Chạy TWFE trên rif_q90
+.     reghdfe rif_q90 INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, ///
+>         absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   8,    518) =      20.90
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.4140
+                                                  Adj R-squared   =     0.2873
+                                                  Within R-sq.    =     0.0142
+Number of clusters (village) =        519         Root MSE        =     1.3927
+
+                               (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------
+              |               Robust
+      rif_q90 | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |   .4105257   .0816504     5.03   0.000      .250119    .5709324
+   INS_x_THAI |   .0184415   .1147819     0.16   0.872    -.2070538    .2439368
+     BYPASSED |   .0604417   .0282392     2.14   0.033     .0049643    .1159191
+BYPASS_x_THAI |  -.0883532   .0477757    -1.85   0.065    -.1822111    .0055047
+     age_head |   .0083356   .0055714     1.50   0.135    -.0026098     .019281
+     SEX_HEAD |   .0140412   .1552533     0.09   0.928    -.2909623    .3190447
+      HH_SIZE |   .1515663   .0161779     9.37   0.000      .119784    .1833486
+ Health_shock |   .0785884   .0441359     1.78   0.076     -.008119    .1652959
+        _cons |   7.314693   .2826687    25.88   0.000     6.759375    7.870011
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+.     estimates store m3_rif90
+. }
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Lấy mật độ tại điểm gần nhất
+. scalar f_q90 = ky[1]
+ky not found
+r(111);
+
+end of do-file
+
+r(111);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Nếu f_q90 quá nhỏ hoặc missing, cảnh báo
+. if scalar(f_q90) <= 0 | missing(scalar(f_q90)) {
+.     display as error "Warning: estimated f_q90 is missing or non-positive. RIF variable will not be created."
+. }
+
+. else {
+.     * Tạo biến RIF theo công thức: RIF(y; q) = q + (tau - 1{y <= q}) / f(q)
+.     gen rif_q90 = `q90' + (0.9 - (ln_OOP_real <= `q90')) / scalar(f_q90)
+variable rif_q90 already defined
+r(110);
+. 
+.     * Kiểm tra phân phối rif_q90
+.     summarize rif_q90, detail
+. 
+.     * Chạy TWFE trên rif_q90
+.     reghdfe rif_q90 INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, ///
+>         absorb(id_panel wave) vce(cluster village)
+.     estimates store m3_rif90
+. }
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Tạo kernel density grid (lưu vào biến tạm)
+. preserve
+
+. keep ln_OOP_real
+
+. kdensity ln_OOP_real, generate(kx ky)
+
+. gen absdiff = abs(kx - `q90')
+kx- invalid name
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Tạo kernel density grid (lưu vào biến tạm)
+. preserve
+
+. keep ln_OOP_real
+
+. kdensity ln_OOP_real, generate(kx ky)
+
+. gen absdiff = abs(kx - `q90')
+kx- invalid name
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ==============================================================================
+. * Thiết lập đường dẫn xuất file hình ảnh và bảng
+. * ==============================================================================
+. global figdir "D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. 
+> De tai cuoi ky\01. Bai viet LATEX 02\figures"
+
+. set scheme s2color
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Tạo kernel density grid (lưu vào biến tạm)
+. preserve
+
+. keep ln_OOP_real
+
+. kdensity ln_OOP_real, generate(kx ky)
+
+. gen absdiff = abs(kx - `q90')
+kx- invalid name
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 5. Robustness checks
+. * ------------------------------------------------------------------------------
+. display ">>> ROBUSTNESS CHECKS <<<"
+>>> ROBUSTNESS CHECKS <<<
+
+. 
+. * 5.1 Cluster theo id_panel (hộ) thay vì village
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI $X, absorb(id_panel wave) vce(cluster id_panel)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,768
+Absorbing 2 HDFE groups                           F(   6,   4208) =      70.12
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8357
+                                                  Adj R-squared   =     0.8002
+                                                  Within R-sq.    =     0.0220
+Number of clusters (id_panel) =      4,209        Root MSE        =     0.7343
+
+                           (Std. err. adjusted for 4,209 clusters in id_panel)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |  -.0769492   .0562415    -1.37   0.171    -.1872123    .0333139
+  INS_x_THAI |   .5551288   .0667042     8.32   0.000     .4243533    .6859042
+    age_head |   .0006389   .0041244     0.15   0.877    -.0074472    .0087249
+    SEX_HEAD |   .0160683   .0950516     0.17   0.866     -.170283    .2024196
+     HH_SIZE |   .0910186   .0062827    14.49   0.000     .0787012    .1033361
+Health_shock |    .077403   .0196926     3.93   0.000     .0387952    .1160108
+       _cons |   6.263012   .2017867    31.04   0.000     5.867404    6.658621
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209        4209           0    *|
+        wave |         7           1           6     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. estimates store m1_cluster_hhid
+
+. 
+. * 5.2 Cluster theo wave
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI $X, absorb(id_panel wave) vce(cluster wave)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,768
+Absorbing 2 HDFE groups                           F(   6,      6) =     526.41
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8357
+                                                  Adj R-squared   =     0.8002
+                                                  Within R-sq.    =     0.0220
+Number of clusters (wave)    =          7         Root MSE        =     0.7343
+
+                                   (Std. err. adjusted for 7 clusters in wave)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |  -.0769492   .1754635    -0.44   0.676    -.5062929    .3523946
+  INS_x_THAI |   .5551288    .296986     1.87   0.111    -.1715698    1.281827
+    age_head |   .0006389   .0044555     0.14   0.891    -.0102634    .0115412
+    SEX_HEAD |   .0160683   .0687981     0.23   0.823    -.1522745    .1844111
+     HH_SIZE |   .0910186   .0138926     6.55   0.001     .0570246    .1250127
+Health_shock |    .077403   .0157051     4.93   0.003     .0389742    .1158319
+       _cons |   6.263012   .2774202    22.58   0.000      5.58419    6.941835
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           1        4208     |
+        wave |         7           7           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. estimates store m1_cluster_wave
+
+. 
+. * 5.3 FE đơn giản (xtreg, fe) để so sánh
+. xtset id_panel wave
+
+Panel variable: id_panel (unbalanced)
+ Time variable: wave, 2007 to 2024, but with gaps
+         Delta: 1 unit
+
+. xtreg ln_OOP_real INS_dummy INS_x_THAI $X, fe vce(cluster village)
+panels are not nested within clusters
+r(498);
+
+end of do-file
+
+r(498);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 7. Xuất bảng kết quả (esttab)
+. * ------------------------------------------------------------------------------
+. display ">>> EXPORTING TABLES (esttab) <<<"
+>>> EXPORTING TABLES (esttab) <<<
+
+. 
+. * Chọn mô hình để xuất: nếu m3_rif90 tồn tại thì dùng, nếu không dùng m3_qreg90
+. capture confirm estimate m3_rif90
+
+. if _rc {
+.     * m3_rif90 không tồn tại -> dùng m3_qreg90
+.     esttab m1_baseline m2_bypass m3_qreg90 using "Table_Results_TVSEP.rtf", replace ///
+>         b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>         keep(INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI Health_shock) ///
+>         coeflabels(INS_dummy "BHYT (Chung)" ///
+>                    INS_x_THAI "BHYT x Thái Lan (Hiệu ứng chênh lệch BHYT)" ///
+>                    BYPASSED "Vượt tuyến (Chung)" ///
+>                    BYPASS_x_THAI "Vượt tuyến x Thái Lan (Hiệu ứng gác cổng)" ///
+>                    Health_shock "Cú sốc sức khỏe") ///
+>         mtitles("Baseline (Mean)" "Mechanism (Mean)" "Q90 (qreg)") ///
+>         title("Tác động của BHYT và Vượt tuyến đến Chi tiêu y tế (VN vs THA)") ///
+>         addnotes("Chi phí phụ thuộc: Log(OOP PPP USD Real). FE: Hộ và Wave. Cluster: village.")
+(output written to Table_Results_TVSEP.rtf)
+. }
+
+. else {
+.     esttab m1_baseline m2_bypass m3_rif90 using "Table_Results_TVSEP.rtf", replace ///
+>         b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>         keep(INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI Health_shock) ///
+>         coeflabels(INS_dummy "BHYT (Chung)" ///
+>                    INS_x_THAI "BHYT x Thái Lan (Hiệu ứng chênh lệch BHYT)" ///
+>                    BYPASSED "Vượt tuyến (Chung)" ///
+>                    BYPASS_x_THAI "Vượt tuyến x Thái Lan (Hiệu ứng gác cổng)" ///
+>                    Health_shock "Cú sốc sức khỏe") ///
+>         mtitles("Baseline (Mean)" "Mechanism (Mean)" "RIF Q90") ///
+>         title("Tác động của BHYT và Vượt tuyến đến Chi tiêu y tế (VN vs THA)") ///
+>         addnotes("Chi phí phụ thuộc: Log(OOP PPP USD Real). FE: Hộ và Wave. Cluster: village.")
+. }
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 8. ĐỒ THỊ MINH HỌA (LƯU HÌNH ẢNH)
+. * ------------------------------------------------------------------------------
+. display ">>> PLOTTING GRAPHS <<<"
+>>> PLOTTING GRAPHS <<<
+
+. 
+. * 8.1 Boxplot ln_OOP_real theo BHYT và quốc gia
+. graph box ln_OOP_real, over(INS_dummy) over(country_code) ///
+>     title("Chi phí ngoài túi theo BHYT và quốc gia") ///
+>     ytitle("Log(OOP Real)") ///
+>     name(gbox_ins_country, replace)
+
+. graph export "gbox_ins_country.png", replace
+(file gbox_ins_country.png not found)
+file gbox_ins_country.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 8.2 Xu hướng trung bình ln_OOP_real theo wave cho mỗi quốc gia
+. preserve
+
+. collapse (mean) ln_OOP_real (count) N = ln_OOP_real, by(wave country_code)
+
+. twoway (line ln_OOP_real wave if country_code=="VNM", lcolor(red) lpattern(solid) ///
+>         lwidth(medthick) ) ///
+>        (line ln_OOP_real wave if country_code=="THA", lcolor(blue) lpattern(dash) ///
+>         lwidth(medthick) ), ///
+>        legend(order(1 "Việt Nam" 2 "Thái Lan")) ///
+>        title("Xu hướng trung bình Log(OOP) theo thời gian") ///
+>        ytitle("Mean Log(OOP Real)") ///
+>        xtitle("Wave") ///
+>        name(gtrend_wave, replace)
+
+. graph export "gtrend_wave.png", replace
+(file gtrend_wave.png not found)
+file gtrend_wave.png saved as PNG format
+
+. restore
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 8.3 Phân phối (CDF) ln_OOP_real theo quốc gia
+. preserve
+
+. keep ln_OOP_real country_code
+
+. sort ln_OOP_real
+
+. by country_code: gen rank = _n
+not sorted
+r(5);
+
+end of do-file
+
+r(5);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 5.3 FE đơn giản (xtreg, fe) để so sánh
+. xtset id_panel wave
+
+Panel variable: id_panel (unbalanced)
+ Time variable: wave, 2007 to 2024, but with gaps
+         Delta: 1 unit
+
+. xtreg ln_OOP_real INS_dummy INS_x_THAI $X, fe vce(cluster village)
+panels are not nested within clusters
+r(498);
+
+end of do-file
+
+r(498);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 6. Phân tích riêng theo quốc gia (Việt Nam vs Thái Lan)
+. * ------------------------------------------------------------------------------
+. display ">>> COUNTRY-SPECIFIC ESTIMATES <<<"
+>>> COUNTRY-SPECIFIC ESTIMATES <<<
+
+. 
+. * Việt Nam
+. reghdfe ln_OOP_real INS_dummy BYPASSED $X if country_code=="VNM", ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 2603 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     11,864
+Absorbing 2 HDFE groups                           F(   6,    291) =      17.39
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8227
+                                                  Adj R-squared   =     0.7842
+                                                  Within R-sq.    =     0.0163
+Number of clusters (village) =        292         Root MSE        =     0.7408
+
+                              (Std. err. adjusted for 292 clusters in village)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |   .1171889   .0597435     1.96   0.051    -.0003953    .2347731
+    BYPASSED |   .0651275   .0191807     3.40   0.001      .027377     .102878
+    age_head |   .0067913   .0076294     0.89   0.374    -.0082244    .0218071
+    SEX_HEAD |   -.101851   .2105663    -0.48   0.629     -.516277     .312575
+     HH_SIZE |   .0933342   .0102023     9.15   0.000     .0732545    .1134139
+Health_shock |  -.0378793   .0299317    -1.27   0.207    -.0967895    .0210308
+       _cons |   5.931932   .3549052    16.71   0.000     5.233426    6.630439
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      2108           0        2108     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m_vnm
+
+. 
+. * Thái Lan
+. reghdfe ln_OOP_real INS_dummy BYPASSED $X if country_code=="THA", ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 3102 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     11,890
+Absorbing 2 HDFE groups                           F(   6,    286) =      34.98
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.9216
+                                                  Adj R-squared   =     0.9046
+                                                  Within R-sq.    =     0.0283
+Number of clusters (village) =        287         Root MSE        =     0.5213
+
+                              (Std. err. adjusted for 287 clusters in village)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |   .2386235   .0344656     6.92   0.000     .1707851    .3064618
+    BYPASSED |   .0428127   .0134392     3.19   0.002     .0163605    .0692649
+    age_head |  -.0012099   .0035164    -0.34   0.731    -.0081312    .0057114
+    SEX_HEAD |   .0086821   .0787051     0.11   0.912    -.1462326    .1635968
+     HH_SIZE |   .0740698   .0076386     9.70   0.000     .0590348    .0891049
+Health_shock |   .0785273   .0207415     3.79   0.000      .037702    .1193527
+       _cons |   6.474939   .1860641    34.80   0.000      6.10871    6.841168
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      2101           0        2101     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m_tha
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 8.4 Coefficient plot: so sánh hệ số chính giữa các mô hình (dùng coefplot)
+. * Lưu ý: coefplot cần các estimates đã lưu
+. capture which coefplot
+
+. if _rc {
+.     display "coefplot not installed; skipping coefficient plot."
+. }
+
+. else {
+.     * Chọn các mô hình có tồn tại
+.     local models ""
+.     capture confirm estimate m1_baseline
+.     if !_rc local models "`models' m1_baseline"
+.     capture confirm estimate m2_bypass
+.     if !_rc local models "`models' m2_bypass"
+.     capture confirm estimate m3_rif90
+.     if !_rc local models "`models' m3_rif90"
+.     capture confirm estimate m3_qreg90
+.     if !_rc local models "`models' m3_qreg90"
+. 
+.     * Nếu có ít nhất 2 mô hình, vẽ
+.     tokenize "`models'"
+.     local n = `: word count `models''
+.     if `n' >= 2 {
+.         coefplot `models', keep(INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI Health_shock) ///
+>             xline(0) vertical ///
+>             title("So sánh hệ số chính giữa các mô hình") ///
+>             name(gcoef_models, replace)
+.         graph export "gcoef_models.png", replace
+.     }
+. }
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * 8.5 Scatter + fitted values: ln_OOP_real vs HH_SIZE, theo BHYT
+. * Tạo fitted values từ baseline model
+. predict double fitted_m1, xb
+(2,306 missing values generated)
+
+. twoway (scatter ln_OOP_real HH_SIZE if INS_dummy==0, mcolor(gs10)) ///
+>        (scatter ln_OOP_real HH_SIZE if INS_dummy==1, mcolor(blue)) ///
+>        (line fitted_m1 HH_SIZE, lcolor(red)), ///
+>        legend(order(1 "No BHYT" 2 "BHYT" 3 "Fitted (Baseline)")) ///
+>        title("Log(OOP) vs HH_SIZE, theo BHYT") ///
+>        name(gscatter_fitted, replace)
+
+. graph export "gscatter_fitted.png", replace
+(file gscatter_fitted.png not found)
+file gscatter_fitted.png saved as PNG format
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * 9. Lưu workspace và kết thúc
+. * ------------------------------------------------------------------------------
+. save "TVSEP_Panel_Clean_CPI_Labelled_processed.dta", replace
+(file TVSEP_Panel_Clean_CPI_Labelled_processed.dta not found)
+file TVSEP_Panel_Clean_CPI_Labelled_processed.dta saved
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 2: THỐNG KÊ MÔ TẢ VÀ ĐỒ THỊ XU HƯỚNG TỔNG QUAN
+. * ------------------------------------------------------------------------------
+. display ">>> XUẤT ĐỒ THỊ XU HƯỚNG CHI PHÍ OOP TỔNG THỂ <<<"
+>>> XUẤT ĐỒ THỊ XU HƯỚNG CHI PHÍ OOP TỔNG THỂ <<<
+
+. 
+. preserve
+
+. collapse (mean) mean_ln_OOP=ln_OOP_real, by(wave country_code INS_dummy)
+
+. twoway (line mean_ln_OOP wave if country_code=="VNM" & INS_dummy==0, lcolor(maroon) lpattern(dash) lwidth(medthick)) /
+> //
+>        (line mean_ln_OOP wave if country_code=="VNM" & INS_dummy==1, lcolor(maroon) lpattern(solid) lwidth(medthick) m
+> symbol(S)) ///
+>        (line mean_ln_OOP wave if country_code=="THA" & INS_dummy==0, lcolor(navy) lpattern(dash) lwidth(medthick)) ///
+>        (line mean_ln_OOP wave if country_code=="THA" & INS_dummy==1, lcolor(navy) lpattern(solid) lwidth(medthick) msy
+> mbol(D)), ///
+>        legend(order(1 "VN - Không BHYT" 2 "VN - Có BHYT" 3 "Thái - Không BHYT" 4 "Thái - Có BHYT") position(6) rows(2)
+> ) ///
+>        title("Xu hướng chi phí y tế tiền túi trung bình (2007-2024)") ///
+>        ytitle("Mean Log(OOP PPP USD Real)") xtitle("Năm khảo sát (Wave)") ///
+>        name(gtrend_overall, replace)
+
+. graph export "${figdir}\oop_trend_overall.png", replace as(png) width(2000)
+file D:\01. HOC HANH\13. THAC SI UEH\05. MON HOC\HOC KY 2\04. KINH TE SUC KHOE\04. De tai Bao hiem y te\02. De tai
+    cuoi ky\01. Bai viet LATEX 02\figures\oop_trend_overall.png saved as PNG format
+
+. restore
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 3: MÔ HÌNH HỒI QUY CHÍNH (BASELINE, MECHANISM & Q90)
+. * ------------------------------------------------------------------------------
+. display ">>> CHẠY CÁC MÔ HÌNH KINH TẾ LƯỢNG CỐT LÕI <<<"
+>>> CHẠY CÁC MÔ HÌNH KINH TẾ LƯỢNG CỐT LÕI <<<
+
+. 
+. * Mô hình 1: Tác động tổng thể
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   6,    518) =      53.44
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8361
+                                                  Adj R-squared   =     0.8006
+                                                  Within R-sq.    =     0.0220
+Number of clusters (village) =        519         Root MSE        =     0.7333
+
+                              (Std. err. adjusted for 519 clusters in village)
+------------------------------------------------------------------------------
+             |               Robust
+ ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   INS_dummy |  -.0770906   .0650143    -1.19   0.236    -.2048148    .0506336
+  INS_x_THAI |   .5543241   .0853306     6.50   0.000     .3866876    .7219607
+    age_head |   .0005059   .0043144     0.12   0.907    -.0079699    .0089818
+    SEX_HEAD |   .0157196   .1016101     0.15   0.877    -.1838989    .2153382
+     HH_SIZE |   .0909693   .0070346    12.93   0.000     .0771494    .1047892
+Health_shock |    .077637   .0215913     3.60   0.000     .0352197    .1200543
+       _cons |   6.270619   .2118797    29.60   0.000      5.85437    6.686868
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m1_base
+
+. 
+. * Mô hình 2: Cơ chế vượt tuyến
+. reghdfe ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, ///
+>     absorb(id_panel wave) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 6 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 2 HDFE groups                           F(   8,    518) =      46.00
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8364
+                                                  Adj R-squared   =     0.8010
+                                                  Within R-sq.    =     0.0239
+Number of clusters (village) =        519         Root MSE        =     0.7327
+
+                               (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------
+              |               Robust
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |  -.0734868    .064887    -1.13   0.258    -.2009607    .0539872
+   INS_x_THAI |   .5455349   .0851591     6.41   0.000     .3782352    .7128345
+     BYPASSED |   .0645448   .0230312     2.80   0.005     .0192988    .1097908
+BYPASS_x_THAI |    .013898   .0300669     0.46   0.644    -.0451702    .0729661
+     age_head |   .0004293    .004295     0.10   0.920    -.0080085    .0088671
+     SEX_HEAD |   .0169514   .1013001     0.17   0.867    -.1820581    .2159609
+      HH_SIZE |   .0903113   .0070046    12.89   0.000     .0765505    .1040722
+ Health_shock |   .0649678   .0212922     3.05   0.002      .023138    .1067975
+        _cons |   6.255969   .2109057    29.66   0.000     5.841633    6.670305
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+        wave |         7           1           6     |
+-----------------------------------------------------+
+
+. estimates store m2_bypass
+
+. 
+. * Mô hình 3: Thảm họa y tế (Phân vị 90th)
+. sqreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI ///
+>       $X i.wave, q(.90)
+(fitting base model)
+
+Bootstrap replications (20)
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+....................
+
+Simultaneous quantile regression                    Number of obs =     29,473
+  bootstrap(20) SEs                                 .90 Pseudo R2 =     0.3583
+
+-------------------------------------------------------------------------------
+              |              Bootstrap
+  ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+q90           |
+    INS_dummy |   .3453596   .0433302     7.97   0.000     .2604305    .4302887
+   INS_x_THAI |  -.4517331   .0550473    -8.21   0.000    -.5596283   -.3438379
+     BYPASSED |  -.1664336   .0240796    -6.91   0.000    -.2136307   -.1192365
+BYPASS_x_THAI |   .2444607   .0331257     7.38   0.000     .1795329    .3093885
+     age_head |  -.0025467   .0006787    -3.75   0.000    -.0038769   -.0012164
+     SEX_HEAD |   .0078733   .0285785     0.28   0.783    -.0481418    .0638885
+      HH_SIZE |   .0516777   .0038989    13.25   0.000     .0440358    .0593197
+ Health_shock |   .0962773   .0322774     2.98   0.003     .0330122    .1595425
+              |
+         wave |
+        2008  |  -1.687666   .0260897   -64.69   0.000    -1.738802   -1.636529
+        2010  |   .1385089   .0218673     6.33   0.000     .0956481    .1813697
+        2011  |   .1092641   .0278138     3.93   0.000     .0547477    .1637804
+        2013  |  -2.777975   .0255925  -108.55   0.000    -2.828137   -2.727813
+        2016  |   .7000156   .0224788    31.14   0.000     .6559562     .744075
+        2017  |   .7530035   .0198294    37.97   0.000      .714137    .7918701
+        2022  |   .2537068   .1169737     2.17   0.030     .0244332    .4829805
+        2024  |   1.764645   1.292183     1.37   0.172    -.7680904    4.297381
+              |
+        _cons |   8.102471   .0348026   232.81   0.000     8.034257    8.170686
+-------------------------------------------------------------------------------
+
+. 
+. estimates store m3_q90
+
+. 
+. * Xuất bảng
+. esttab m1_base m2_bypass m3_q90 using "Table_Main_Results.rtf", replace ///
+>     b(3) se(3) star(* 0.10 ** 0.05 *** 0.01) ///
+>     keep(INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI Health_shock) ///
+>     coeflabels(INS_dummy "BHYT (Chung/VN)" INS_x_THAI "BHYT x Thái Lan" ///
+>                BYPASSED "Vượt tuyến (Chung)" BYPASS_x_THAI "Vượt tuyến x Thái Lan") ///
+>     mtitles("TWFE (Mean)" "Mechanism (Mean)" "SQREG (Q90 - Thảm họa)")
+(output written to Table_Main_Results.rtf)
+
+.         
+. * 3 quantile:
+. qreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, q(.50)
+Iteration  1:  WLS sum of weighted deviations =  25160.367
+
+Iteration  1: sum of abs. weighted deviations =  25158.282
+Iteration  2: sum of abs. weighted deviations =  24365.778
+Iteration  3: sum of abs. weighted deviations =  24279.085
+Iteration  4: sum of abs. weighted deviations =  24269.039
+Iteration  5: sum of abs. weighted deviations =  24180.351
+Iteration  6: sum of abs. weighted deviations =  24171.673
+Iteration  7: sum of abs. weighted deviations =  24169.962
+Iteration  8: sum of abs. weighted deviations =  24164.057
+Iteration  9: sum of abs. weighted deviations =  24099.289
+Iteration 10: sum of abs. weighted deviations =  24094.406
+Iteration 11: sum of abs. weighted deviations =  24080.841
+note: alternate solutions exist.
+Iteration 12: sum of abs. weighted deviations =  24064.986
+Iteration 13: sum of abs. weighted deviations =  24061.317
+Iteration 14: sum of abs. weighted deviations =  24060.703
+note: alternate solutions exist.
+Iteration 15: sum of abs. weighted deviations =  24058.888
+Iteration 16: sum of abs. weighted deviations =  24056.815
+Iteration 17: sum of abs. weighted deviations =  24055.278
+Iteration 18: sum of abs. weighted deviations =  24055.152
+note: alternate solutions exist.
+Iteration 19: sum of abs. weighted deviations =  24055.027
+Iteration 20: sum of abs. weighted deviations =  24055.009
+Iteration 21: sum of abs. weighted deviations =  24054.759
+Iteration 22: sum of abs. weighted deviations =  24054.676
+Iteration 23: sum of abs. weighted deviations =  24054.595
+Iteration 24: sum of abs. weighted deviations =  24054.485
+Iteration 25: sum of abs. weighted deviations =  24054.437
+Iteration 26: sum of abs. weighted deviations =  24054.424
+Iteration 27: sum of abs. weighted deviations =  24054.414
+Iteration 28: sum of abs. weighted deviations =  24054.408
+Iteration 29: sum of abs. weighted deviations =  24054.403
+Iteration 30: sum of abs. weighted deviations =  24054.329
+Iteration 31: sum of abs. weighted deviations =  24054.299
+Iteration 32: sum of abs. weighted deviations =  24054.291
+Iteration 33: sum of abs. weighted deviations =  24054.291
+Iteration 34: sum of abs. weighted deviations =  24054.288
+Iteration 35: sum of abs. weighted deviations =  24054.277
+Iteration 36: sum of abs. weighted deviations =  24054.254
+Iteration 37: sum of abs. weighted deviations =  24054.252
+Iteration 38: sum of abs. weighted deviations =  24054.239
+note: alternate solutions exist.
+Iteration 39: sum of abs. weighted deviations =  24054.237
+Iteration 40: sum of abs. weighted deviations =  24054.204
+Iteration 41: sum of abs. weighted deviations =  24054.193
+Iteration 42: sum of abs. weighted deviations =   24054.19
+Iteration 43: sum of abs. weighted deviations =   24054.19
+note: alternate solutions exist.
+Iteration 44: sum of abs. weighted deviations =   24054.19
+Iteration 45: sum of abs. weighted deviations =  24054.189
+Iteration 46: sum of abs. weighted deviations =  24054.189
+note: alternate solutions exist.
+Iteration 47: sum of abs. weighted deviations =  24054.189
+Iteration 48: sum of abs. weighted deviations =  24054.188
+note: alternate solutions exist.
+Iteration 49: sum of abs. weighted deviations =  24054.188
+Iteration 50: sum of abs. weighted deviations =  24054.187
+Iteration 51: sum of abs. weighted deviations =  24054.186
+Iteration 52: sum of abs. weighted deviations =  24054.186
+Iteration 53: sum of abs. weighted deviations =  24054.186
+
+Median regression                                   Number of obs =     29,473
+  Raw sum of deviations 28977.04 (about 6.8159955)
+  Min sum of deviations 24054.19                    Pseudo R2     =     0.1699
+
+-------------------------------------------------------------------------------
+  ln_OOP_real | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |  -.4503581   .0615318    -7.32   0.000    -.5709632    -.329753
+   INS_x_THAI |  -1.283002   .0760408   -16.87   0.000    -1.432045   -1.133958
+     BYPASSED |   .0396768   .0366777     1.08   0.279    -.0322131    .1115667
+BYPASS_x_THAI |   .2368539   .0514171     4.61   0.000      .136074    .3376337
+     age_head |  -.0016721   .0000256   -65.24   0.000    -.0017223   -.0016219
+     SEX_HEAD |  -.0288418   .0363159    -0.79   0.427    -.1000226    .0423391
+      HH_SIZE |   .1083859   .0063297    17.12   0.000     .0959794    .1207925
+ Health_shock |   -.285743   .0485937    -5.88   0.000    -.3809887   -.1904972
+        _cons |   6.658731   .0373836   178.12   0.000     6.585458    6.732005
+-------------------------------------------------------------------------------
+
+. qreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, q(.75)
+Iteration  1:  WLS sum of weighted deviations =  22825.441
+
+Iteration  1: sum of abs. weighted deviations =  24300.632
+Iteration  2: sum of abs. weighted deviations =  22235.324
+Iteration  3: sum of abs. weighted deviations =   18029.34
+Iteration  4: sum of abs. weighted deviations =  17742.875
+Iteration  5: sum of abs. weighted deviations =  17550.092
+Iteration  6: sum of abs. weighted deviations =   17468.84
+Iteration  7: sum of abs. weighted deviations =  16995.039
+Iteration  8: sum of abs. weighted deviations =  16807.866
+Iteration  9: sum of abs. weighted deviations =  16745.389
+Iteration 10: sum of abs. weighted deviations =   16716.87
+Iteration 11: sum of abs. weighted deviations =  16656.727
+Iteration 12: sum of abs. weighted deviations =  16632.917
+Iteration 13: sum of abs. weighted deviations =  16507.497
+Iteration 14: sum of abs. weighted deviations =  16473.959
+Iteration 15: sum of abs. weighted deviations =  16057.305
+Iteration 16: sum of abs. weighted deviations =  15928.477
+Iteration 17: sum of abs. weighted deviations =  15885.511
+Iteration 18: sum of abs. weighted deviations =  15845.829
+Iteration 19: sum of abs. weighted deviations =  15842.566
+Iteration 20: sum of abs. weighted deviations =  15801.891
+Iteration 21: sum of abs. weighted deviations =  15762.045
+Iteration 22: sum of abs. weighted deviations =  15755.955
+Iteration 23: sum of abs. weighted deviations =  15713.891
+Iteration 24: sum of abs. weighted deviations =  15711.847
+Iteration 25: sum of abs. weighted deviations =  15709.637
+Iteration 26: sum of abs. weighted deviations =  15704.635
+Iteration 27: sum of abs. weighted deviations =  15697.763
+Iteration 28: sum of abs. weighted deviations =  15696.611
+Iteration 29: sum of abs. weighted deviations =  15696.139
+Iteration 30: sum of abs. weighted deviations =  15695.138
+Iteration 31: sum of abs. weighted deviations =  15691.665
+Iteration 32: sum of abs. weighted deviations =  15691.617
+Iteration 33: sum of abs. weighted deviations =  15690.946
+Iteration 34: sum of abs. weighted deviations =   15688.31
+Iteration 35: sum of abs. weighted deviations =   15687.72
+Iteration 36: sum of abs. weighted deviations =  15687.335
+Iteration 37: sum of abs. weighted deviations =  15687.307
+Iteration 38: sum of abs. weighted deviations =  15687.249
+Iteration 39: sum of abs. weighted deviations =  15687.153
+Iteration 40: sum of abs. weighted deviations =  15687.089
+Iteration 41: sum of abs. weighted deviations =  15687.064
+Iteration 42: sum of abs. weighted deviations =  15687.054
+Iteration 43: sum of abs. weighted deviations =  15687.032
+Iteration 44: sum of abs. weighted deviations =  15686.719
+Iteration 45: sum of abs. weighted deviations =  15686.699
+Iteration 46: sum of abs. weighted deviations =  15686.685
+Iteration 47: sum of abs. weighted deviations =  15686.678
+Iteration 48: sum of abs. weighted deviations =  15686.666
+Iteration 49: sum of abs. weighted deviations =  15686.651
+Iteration 50: sum of abs. weighted deviations =  15686.609
+Iteration 51: sum of abs. weighted deviations =  15686.597
+note: alternate solutions exist.
+Iteration 52: sum of abs. weighted deviations =  15686.595
+Iteration 53: sum of abs. weighted deviations =  15686.594
+Iteration 54: sum of abs. weighted deviations =  15686.594
+Iteration 55: sum of abs. weighted deviations =  15686.594
+Iteration 56: sum of abs. weighted deviations =  15686.592
+Iteration 57: sum of abs. weighted deviations =  15686.592
+Iteration 58: sum of abs. weighted deviations =  15686.592
+Iteration 59: sum of abs. weighted deviations =  15686.592
+
+.75 Quantile regression                             Number of obs =     29,473
+  Raw sum of deviations 18351.92 (about 7.88724)
+  Min sum of deviations 15686.59                    Pseudo R2     =     0.1452
+
+-------------------------------------------------------------------------------
+  ln_OOP_real | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |   .1318539   .0402403     3.28   0.001      .052981    .2107267
+   INS_x_THAI |  -.8898041   .0497288   -17.89   0.000    -.9872748   -.7923334
+     BYPASSED |   -.215304   .0239863    -8.98   0.000    -.2623183   -.1682897
+BYPASS_x_THAI |   .2967066   .0336255     8.82   0.000      .230799    .3626141
+     age_head |  -.0018078   .0000168  -107.86   0.000    -.0018406   -.0017749
+     SEX_HEAD |  -.0268692   .0237497    -1.13   0.258    -.0734197    .0196814
+      HH_SIZE |   .0825817   .0041395    19.95   0.000     .0744681    .0906953
+ Health_shock |   .0926188   .0317791     2.91   0.004     .0303304    .1549072
+        _cons |    7.66765    .024448   313.63   0.000     7.619731    7.715569
+-------------------------------------------------------------------------------
+
+. qreg ln_OOP_real INS_dummy INS_x_THAI BYPASSED BYPASS_x_THAI $X, q(.90)
+Iteration  1:  WLS sum of weighted deviations =  20235.038
+
+Iteration  1: sum of abs. weighted deviations =  20253.499
+Iteration  2: sum of abs. weighted deviations =  20252.017
+Iteration  3: sum of abs. weighted deviations =  12929.329
+Iteration  4: sum of abs. weighted deviations =  12129.603
+Iteration  5: sum of abs. weighted deviations =  11667.338
+Iteration  6: sum of abs. weighted deviations =  11160.386
+Iteration  7: sum of abs. weighted deviations =  10119.283
+Iteration  8: sum of abs. weighted deviations =   9539.033
+Iteration  9: sum of abs. weighted deviations =  9157.9218
+Iteration 10: sum of abs. weighted deviations =  9012.4723
+Iteration 11: sum of abs. weighted deviations =  8520.3659
+Iteration 12: sum of abs. weighted deviations =  8407.3065
+Iteration 13: sum of abs. weighted deviations =   8187.705
+Iteration 14: sum of abs. weighted deviations =  7729.9313
+Iteration 15: sum of abs. weighted deviations =  7618.3398
+Iteration 16: sum of abs. weighted deviations =  7588.8139
+Iteration 17: sum of abs. weighted deviations =  7563.4965
+Iteration 18: sum of abs. weighted deviations =  7550.0338
+Iteration 19: sum of abs. weighted deviations =  7549.4973
+Iteration 20: sum of abs. weighted deviations =  7549.1799
+Iteration 21: sum of abs. weighted deviations =  7540.4716
+Iteration 22: sum of abs. weighted deviations =  7539.9043
+Iteration 23: sum of abs. weighted deviations =  7537.8086
+Iteration 24: sum of abs. weighted deviations =  7536.8542
+Iteration 25: sum of abs. weighted deviations =  7531.4696
+Iteration 26: sum of abs. weighted deviations =  7531.1984
+Iteration 27: sum of abs. weighted deviations =   7529.493
+Iteration 28: sum of abs. weighted deviations =  7526.5117
+Iteration 29: sum of abs. weighted deviations =  7525.4849
+Iteration 30: sum of abs. weighted deviations =  7525.4301
+Iteration 31: sum of abs. weighted deviations =   7524.924
+Iteration 32: sum of abs. weighted deviations =  7524.4281
+Iteration 33: sum of abs. weighted deviations =  7523.7883
+Iteration 34: sum of abs. weighted deviations =  7523.2009
+Iteration 35: sum of abs. weighted deviations =  7522.4433
+Iteration 36: sum of abs. weighted deviations =  7522.2504
+Iteration 37: sum of abs. weighted deviations =  7522.0935
+Iteration 38: sum of abs. weighted deviations =  7521.8915
+Iteration 39: sum of abs. weighted deviations =  7521.8835
+Iteration 40: sum of abs. weighted deviations =  7521.8788
+Iteration 41: sum of abs. weighted deviations =  7521.7714
+Iteration 42: sum of abs. weighted deviations =  7521.7706
+Iteration 43: sum of abs. weighted deviations =  7521.7686
+Iteration 44: sum of abs. weighted deviations =  7521.7605
+Iteration 45: sum of abs. weighted deviations =  7521.7584
+Iteration 46: sum of abs. weighted deviations =  7521.7522
+Iteration 47: sum of abs. weighted deviations =  7521.7448
+Iteration 48: sum of abs. weighted deviations =  7521.7305
+Iteration 49: sum of abs. weighted deviations =  7521.7277
+Iteration 50: sum of abs. weighted deviations =  7521.7233
+Iteration 51: sum of abs. weighted deviations =  7521.7209
+Iteration 52: sum of abs. weighted deviations =  7521.7192
+Iteration 53: sum of abs. weighted deviations =  7521.7186
+note: alternate solutions exist.
+Iteration 54: sum of abs. weighted deviations =  7521.7185
+Iteration 55: sum of abs. weighted deviations =  7521.7182
+Iteration 56: sum of abs. weighted deviations =  7521.7181
+Iteration 57: sum of abs. weighted deviations =  7521.7181
+Iteration 58: sum of abs. weighted deviations =  7521.7181
+Iteration 59: sum of abs. weighted deviations =  7521.7178
+Iteration 60: sum of abs. weighted deviations =  7521.7177
+Iteration 61: sum of abs. weighted deviations =  7521.7177
+Iteration 62: sum of abs. weighted deviations =  7521.7176
+Iteration 63: sum of abs. weighted deviations =  7521.7176
+
+.9 Quantile regression                              Number of obs =     29,473
+  Raw sum of deviations 8591.401 (about 8.4883907)
+  Min sum of deviations 7521.718                    Pseudo R2     =     0.1245
+
+-------------------------------------------------------------------------------
+  ln_OOP_real | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+    INS_dummy |    .301333   .0418894     7.19   0.000      .219228     .383438
+   INS_x_THAI |   -.690161   .0517667   -13.33   0.000     -.791626    -.588696
+     BYPASSED |  -.3536063   .0249693   -14.16   0.000    -.4025472   -.3046654
+BYPASS_x_THAI |    .394892   .0350035    11.28   0.000     .3262836    .4635005
+     age_head |   -.001753   .0000174  -100.47   0.000    -.0017872   -.0017188
+     SEX_HEAD |  -.0178278    .024723    -0.72   0.471    -.0662859    .0306304
+      HH_SIZE |   .0568942   .0043091    13.20   0.000     .0484482    .0653403
+ Health_shock |    .142173   .0330814     4.30   0.000     .0773321     .207014
+        _cons |   8.376754   .0254498   329.15   0.000     8.326872    8.426637
+-------------------------------------------------------------------------------
+
+. 
+. * Sau đó tạo bảng:
+. Table: Quantile Regression Results for OOP Expenditure
+program table already defined
+(error occurred while loading Table.ado)
+r(110);
+
+end of do-file
+
+r(110);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * ------------------------------------------------------------------------------
+. * PHẦN 4: PHÂN TÍCH ĐỘNG (DYNAMIC ANALYSIS) - SỰ THAY ĐỔI THEO THỜI GIAN
+. * ------------------------------------------------------------------------------
+. display ">>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<"
+>>> MÔ HÌNH ĐỘNG: TÁC ĐỘNG BHYT THEO TỪNG LÀN SÓNG (EVENT-STUDY) <<<
+
+. 
+. * Chạy mô hình Fixed Effects với tương tác 3 chiều (Wave x INS x Country)
+. reghdfe ln_OOP_real i.INS_dummy##i.THAI_dummy##i.wave $X, ///
+>     absorb(id_panel) vce(cluster village)
+(dropped 5705 singleton observations)
+(MWFE estimator converged in 1 iterations)
+note: 1bn.THAI_dummy is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.
+> 0e-09)
+
+HDFE Linear regression                            Number of obs   =     23,754
+Absorbing 1 HDFE group                            F(  30,    518) =    5946.57
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.8752
+                                                  Adj R-squared   =     0.8481
+                                                  Within R-sq.    =     0.8554
+Number of clusters (village) =        519         Root MSE        =     0.6402
+
+                                           (Std. err. adjusted for 519 clusters in village)
+-------------------------------------------------------------------------------------------
+                          |               Robust
+              ln_OOP_real | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+              1.INS_dummy |   .6699598   .2089512     3.21   0.001     .2594639    1.080456
+             1.THAI_dummy |          0  (omitted)
+                          |
+     INS_dummy#THAI_dummy |
+                     1 1  |  -.7959517   .2561062    -3.11   0.002    -1.299086   -.2928173
+                          |
+                     wave |
+                    2008  |  -1.506335   .0257686   -58.46   0.000    -1.556958   -1.455711
+                    2010  |   .0054891   .0368899     0.15   0.882    -.0669832    .0779613
+                    2011  |  -.4041735   .0527617    -7.66   0.000    -.5078268   -.3005202
+                    2013  |  -3.400085   .0651672   -52.17   0.000    -3.528109    -3.27206
+                    2016  |   .3371476   .0465721     7.24   0.000     .2456543     .428641
+                    2017  |   .4643868   .0522741     8.88   0.000     .3616914    .5670822
+                          |
+           INS_dummy#wave |
+                  1 2008  |   -.778885   .2322188    -3.35   0.001    -1.235091   -.3226785
+                  1 2010  |   -.647378   .2126888    -3.04   0.002    -1.065217   -.2295394
+                  1 2011  |  -.4649128   .2341477    -1.99   0.048    -.9249086   -.0049169
+                  1 2013  |  -.6416357   .2539913    -2.53   0.012    -1.140615   -.1426561
+                  1 2016  |  -.2997674   .2550799    -1.18   0.240    -.8008856    .2013509
+                  1 2017  |   -.241214   .2352624    -1.03   0.306    -.7033997    .2209718
+                          |
+          THAI_dummy#wave |
+                  1 2008  |  -1.404037   .0312654   -44.91   0.000     -1.46546   -1.342614
+                  1 2010  |   .0062333   .0396365     0.16   0.875    -.0716348    .0841014
+                  1 2011  |   .5425792   .0576471     9.41   0.000     .4293283    .6558301
+                  1 2013  |   .5566546   .0606764     9.17   0.000     .4374525    .6758566
+                  1 2016  |   .3942716   .0352025    11.20   0.000     .3251144    .4634288
+                  1 2017  |   .4085509   .0361423    11.30   0.000     .3375473    .4795544
+                          |
+INS_dummy#THAI_dummy#wave |
+                1 1 2008  |   1.571146   .2828392     5.55   0.000     1.015493    2.126798
+                1 1 2010  |   1.043652   .2625746     3.97   0.000     .5278096    1.559494
+                1 1 2011  |   .6582442   .3097877     2.12   0.034     .0496494    1.266839
+                1 1 2013  |    .885803    .300304     2.95   0.003     .2958396    1.475766
+                1 1 2016  |   .9131002   .3142846     2.91   0.004     .2956711    1.530529
+                1 1 2017  |   .9079342   .3012871     3.01   0.003     .3160393    1.499829
+                          |
+                 age_head |     .00274    .004149     0.66   0.509    -.0054109    .0108908
+                 SEX_HEAD |   -.026077   .0901109    -0.29   0.772    -.2031048    .1509507
+                  HH_SIZE |   .0842982   .0062421    13.50   0.000     .0720352    .0965611
+             Health_shock |   .0221314   .0201525     1.10   0.273    -.0174593    .0617221
+                    _cons |   6.905728   .1832505    37.68   0.000     6.545722    7.265733
+-------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+    id_panel |      4209           0        4209     |
+-----------------------------------------------------+
+
+. 
+. * Tính toán Tác động Biên (Marginal Effects) của BHYT cho từng nước qua các năm
+. quietly margins THAI_dummy, dydx(INS_dummy) over(wave THAI_dummy)
+factor THAI_dummy not allowed in over() option if it is specified as a margin
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. margins, dydx(INS_dummy) over(wave) by(THAI_dummy)
+only one of by(THAI_dummy) or over(wave) is allowed
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. margins, dydx(INS_dummy) over(wave THAI_dummy)
+
+Average marginal effects                                Number of obs = 23,754
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+Over:       wave THAI_dummy
+
+---------------------------------------------------------------------------------
+                |            Delta-method
+                |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+----------------+----------------------------------------------------------------
+0.INS_dummy     |  (base outcome)
+----------------+----------------------------------------------------------------
+1.INS_dummy     |
+wave#THAI_dummy |
+        2007 0  |          .  (not estimable)
+        2007 1  |          .  (not estimable)
+        2008 0  |          .  (not estimable)
+        2008 1  |          .  (not estimable)
+        2010 0  |          .  (not estimable)
+        2010 1  |          .  (not estimable)
+        2011 0  |          .  (not estimable)
+        2011 1  |          .  (not estimable)
+        2013 0  |          .  (not estimable)
+        2013 1  |          .  (not estimable)
+        2016 0  |          .  (not estimable)
+        2016 1  |          .  (not estimable)
+        2017 0  |          .  (not estimable)
+        2017 1  |          .  (not estimable)
+---------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. margins, dydx(INS_dummy) at(THAI_dummy=(0 1) wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 23,754
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at:  THAI_dummy =    0
+        wave       = 2008
+2._at:  THAI_dummy =    0
+        wave       = 2010
+3._at:  THAI_dummy =    0
+        wave       = 2011
+4._at:  THAI_dummy =    0
+        wave       = 2013
+5._at:  THAI_dummy =    0
+        wave       = 2016
+6._at:  THAI_dummy =    0
+        wave       = 2017
+7._at:  THAI_dummy =    1
+        wave       = 2008
+8._at:  THAI_dummy =    1
+        wave       = 2010
+9._at:  THAI_dummy =    1
+        wave       = 2011
+10._at: THAI_dummy =    1
+        wave       = 2013
+11._at: THAI_dummy =    1
+        wave       = 2016
+12._at: THAI_dummy =    1
+        wave       = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |          .  (not estimable)
+          2  |          .  (not estimable)
+          3  |          .  (not estimable)
+          4  |          .  (not estimable)
+          5  |          .  (not estimable)
+          6  |          .  (not estimable)
+          7  |          .  (not estimable)
+          8  |          .  (not estimable)
+          9  |          .  (not estimable)
+         10  |          .  (not estimable)
+         11  |          .  (not estimable)
+         12  |          .  (not estimable)
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. 
+end of do-file
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. margins, dydx(INS_dummy) over(wave) if THAI_dummy==0   // Việt Nam
+option if not allowed
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Vẽ đồ thị Event-Study chuẩn Q1
+. marginsplot, x(wave) ///
+>     title("Tác động của BHYT lên Chi phí Y tế qua thời gian (Dynamic Effects)") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") xtitle("Năm khảo sát (Wave)") ///
+>     yline(0, lcolor(gs8) lpattern(dash)) ///
+>     plot1opts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     plot2opts(lcolor(navy) mcolor(navy) msymbol(D)) ///
+>     ci1opts(fcolor(maroon%20) lcolor(none)) ///
+>     ci2opts(fcolor(navy%20) lcolor(none)) ///
+>     legend(order(1 "Việt Nam (Marginal Effect)" 2 "Thái Lan (Marginal Effect)") position(6) rows(1)) ///
+>     name(g_dynamic_effect, replace)
+previous command was not margins
+r(301);
+
+end of do-file
+
+r(301);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Tính toán Tác động Biên (Marginal Effects) của BHYT cho từng nước qua các năm
+. * -------------------------------
+. * Việt Nam (THAI_dummy==0)
+. * -------------------------------
+. preserve
+
+. keep if THAI_dummy==0
+(15,958 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 11,864
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |          .  (not estimable)
+          2  |          .  (not estimable)
+          3  |          .  (not estimable)
+          4  |          .  (not estimable)
+          5  |          .  (not estimable)
+          6  |          .  (not estimable)
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("Tác động BHYT - Việt Nam")
+
+Variables that uniquely identify margins: wave
+
+. restore
+
+. 
+. * -------------------------------
+. * Thái Lan (THAI_dummy==1)
+. * -------------------------------
+. preserve
+
+. keep if THAI_dummy==1
+(15,821 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 11,890
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |          .  (not estimable)
+          2  |          .  (not estimable)
+          3  |          .  (not estimable)
+          4  |          .  (not estimable)
+          5  |          .  (not estimable)
+          6  |          .  (not estimable)
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(navy) mcolor(navy) msymbol(D)) ///
+>     ciopts(fcolor(navy%20) lcolor(none)) ///
+>     name(th_plot, replace) ///
+>     title("Tác động BHYT - Thái Lan")
+
+Variables that uniquely identify margins: wave
+
+. restore
+
+. 
+. * -------------------------------
+. * Ghép hai đồ thị thành Event-Study chung
+. * -------------------------------
+. graph combine vn_plot th_plot, ///
+>     title("Tác động của BHYT lên Chi phí Y tế qua thời gian (Dynamic Effects)") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") ///
+>     xtitle("Năm khảo sát (Wave)") ///
+>     yline(0, lcolor(gs8) lpattern(dash)) ///
+>     legend(order(1 "Việt Nam" 2 "Thái Lan") position(6) rows(1)) ///
+>     name(g_dynamic_effect, replace)
+option ytitle() not allowed
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * -------------------------------
+. * Ghép hai đồ thị thành Event-Study chung
+. * -------------------------------
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("Tác động BHYT - Việt Nam") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") ///
+>     xtitle("Năm khảo sát (Wave)")
+previous command was not margins
+r(301);
+
+end of do-file
+
+r(301);
+
+. do "C:\Users\Admin\AppData\Local\Temp\STD2788_000000.tmp"
+
+. * Tính toán Tác động Biên (Marginal Effects) của BHYT cho từng nước qua các năm
+. * -------------------------------
+. * Việt Nam (THAI_dummy==0)
+. * -------------------------------
+. preserve
+
+. keep if THAI_dummy==0
+(15,958 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 11,864
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |          .  (not estimable)
+          2  |          .  (not estimable)
+          3  |          .  (not estimable)
+          4  |          .  (not estimable)
+          5  |          .  (not estimable)
+          6  |          .  (not estimable)
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("Tác động BHYT - Việt Nam")
+
+Variables that uniquely identify margins: wave
+
+. restore
+
+. 
+. * -------------------------------
+. * Thái Lan (THAI_dummy==1)
+. * -------------------------------
+. preserve
+
+. keep if THAI_dummy==1
+(15,821 observations deleted)
+
+. margins, dydx(INS_dummy) at(wave=(2008 2010 2011 2013 2016 2017))
+
+Average marginal effects                                Number of obs = 11,890
+Model VCE: Robust
+
+Expression: Linear prediction, predict()
+dy/dx wrt:  1.INS_dummy
+1._at: wave = 2008
+2._at: wave = 2010
+3._at: wave = 2011
+4._at: wave = 2013
+5._at: wave = 2016
+6._at: wave = 2017
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+0.INS_dummy  |  (base outcome)
+-------------+----------------------------------------------------------------
+1.INS_dummy  |
+         _at |
+          1  |          .  (not estimable)
+          2  |          .  (not estimable)
+          3  |          .  (not estimable)
+          4  |          .  (not estimable)
+          5  |          .  (not estimable)
+          6  |          .  (not estimable)
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(navy) mcolor(navy) msymbol(D)) ///
+>     ciopts(fcolor(navy%20) lcolor(none)) ///
+>     name(th_plot, replace) ///
+>     title("Tác động BHYT - Thái Lan")
+
+Variables that uniquely identify margins: wave
+
+. restore
+
+. 
+. * -------------------------------
+. * Ghép hai đồ thị thành Event-Study chung
+. * -------------------------------
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>     ciopts(fcolor(maroon%20) lcolor(none)) ///
+>     name(vn_plot, replace) ///
+>     title("Tác động BHYT - Việt Nam") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") ///
+>     xtitle("Năm khảo sát (Wave)")
+
+Variables that uniquely identify margins: wave
+
+. 
+. marginsplot, x(wave) ///
+>     plotopts(lcolor(navy) mcolor(navy) msymbol(D)) ///
+>     ciopts(fcolor(navy%20) lcolor(none)) ///
+>     name(th_plot, replace) ///
+>     title("Tác động BHYT - Thái Lan") ///
+>     ytitle("Tác động Biên của BHYT (Hệ số Beta)") ///
+>     xtitle("Năm khảo sát (Wave)")
+
+Variables that uniquely identify margins: wave
+
+. 
+. graph combine vn_plot th_plot, ///
+>     title("Tác động của BHYT lên Chi phí Y tế qua thời gian (Dynamic Effects)") ///
+>     name(g_dynamic_effect, replace)
+
+. 
+end of do-file
+
+. exit, clear
